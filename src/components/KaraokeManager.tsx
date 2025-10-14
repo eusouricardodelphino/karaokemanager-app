@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  doc,
+  deleteDoc,
+} from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Mic, Music, Users, Plus, SkipForward } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useFirebase } from "../hooks/firebaseContext";
 
 interface QueueItem {
-  id: string;
+  id?: string;
   name: string;
   song: string;
   link?: string;
@@ -15,32 +27,75 @@ interface QueueItem {
 }
 
 const KaraokeManager = () => {
+  const { db } = useFirebase();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [currentSinger, setCurrentSinger] = useState<QueueItem | null>(null);
   const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
   const [song, setSong] = useState("");
   const [link, setLink] = useState("");
+  let dateToday = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }).toString();
+  dateToday = dateToday.replace(/\//g, ".");
 
-  const addToQueue = () => {
-    if (!name.trim() || !song.trim()) {
+  useEffect(() => {
+    const queryQueue = query(collection(db, dateToday), orderBy("addedAt", "asc"));
+    const unsubscribe = onSnapshot(queryQueue, (snapshot) => {
+      const list: QueueItem[] = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...(d.data() as QueueItem),
+          }));
+      setQueue(list);
+    });
+    fetchOnStageSinger();
+  }, [db]);
+
+  const fetchOnStageSinger = () => {
+    const querySinger = query(collection(db, "onStage"));
+    const unsubscribe = onSnapshot(querySinger, (snapshot) => {
+      const singer: QueueItem[] = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...(d.data() as QueueItem),
+          }));
+      console.log("Current singer data:", singer);
+      setCurrentSinger(singer[0]);
+    });
+    return () => unsubscribe();
+  }
+  
+  const deleteSingerFromQueue = async (singer: QueueItem) => {
+    if (!singer.id) return;
+    const ref = doc(db, dateToday, singer.id);
+    await deleteDoc(ref);
+  };
+
+  const deleteSingerFromStage = async (singer: QueueItem) => {
+    console.log("Deleting singer from Stage:", singer.id);
+    if (!singer.id) return;
+    const ref = doc(db, 'onStage', singer.id);
+    await deleteDoc(ref);
+  };
+
+  const addToQueue =  async () => {
+    if (!name.trim() || !surname.trim() || !song.trim()) {
       toast({
         title: "Campos obrigatórios",
-        description: "Nome e música são obrigatórios!",
+        description: "Nome completo do cantor e música são obrigatórios!",
         variant: "destructive",
       });
       return;
     }
 
     const newItem: QueueItem = {
-      id: Date.now().toString(),
-      name: name.trim(),
+      name: name.trim() + " " + surname.trim(),
       song: song.trim(),
-      link: link.trim() || undefined,
+      link: link.trim() || null,
       addedAt: new Date(),
     };
 
-    setQueue(prev => [...prev, newItem]);
+    await addDoc(collection(db, dateToday), newItem);
+
     setName("");
+    setSurname("");
     setSong("");
     setLink("");
     
@@ -50,12 +105,16 @@ const KaraokeManager = () => {
     });
   };
 
-  const nextSinger = () => {
+  const nextSinger = async () => {
     if (queue.length === 0) return;
     
     const next = queue[0];
-    setCurrentSinger(next);
-    setQueue(prev => prev.slice(1));
+    const { id, ...nextSinger } = next;
+    //setCurrentSinger(next);
+    //setQueue(prev => prev.slice(1));
+    await addDoc(collection(db, 'onStage'), nextSinger);
+    await deleteSingerFromQueue(next);
+    fetchOnStageSinger();
     
     toast({
       title: "Próximo no palco!",
@@ -70,8 +129,9 @@ const KaraokeManager = () => {
       title: "Performance finalizada!",
       description: `Obrigado ${currentSinger.name}! 👏`,
     });
-    
-    setCurrentSinger(null);
+    deleteSingerFromStage(currentSinger);
+    fetchOnStageSinger(); 
+    //setCurrentSinger(null);
   };
 
   return (
@@ -107,6 +167,7 @@ const KaraokeManager = () => {
                 <div className="text-xl text-stage-foreground/90">
                   cantando "{currentSinger.song}"
                 </div>
+                <p>
                 {currentSinger.link && (
                   <a
                     href={currentSinger.link}
@@ -117,7 +178,7 @@ const KaraokeManager = () => {
                     <Music className="h-4 w-4" />
                     Ver música
                   </a>
-                )}
+                )}</p>
                 <Button
                   onClick={finishSinging}
                   variant="secondary"
@@ -152,6 +213,16 @@ const KaraokeManager = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Seu nome"
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="surname">Sobrenome *</Label>
+                <Input
+                  id="surname"
+                  value={surname}
+                  onChange={(e) => setSurname(e.target.value)}
+                  placeholder="Seu sobrenome"
                   className="bg-background"
                 />
               </div>
@@ -199,7 +270,7 @@ const KaraokeManager = () => {
             <CardContent>
               {queue.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
-                  Fila vazia - adicione alguém!
+                  Fila vazia - vamos começar cantar?
                 </div>
               ) : (
                 <div className="space-y-3">
