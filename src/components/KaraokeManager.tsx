@@ -14,9 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Mic, Music, Users, Plus, SkipForward } from "lucide-react";
+import { Mic, Music, Users, Plus, SkipForward, LogIn, LogOut } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "../hooks/firebaseContext";
+import { auth } from "@/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 interface QueueItem {
   id?: string;
@@ -28,18 +31,26 @@ interface QueueItem {
 
 const KaraokeManager = () => {
   const { db } = useFirebase();
+  const navigate = useNavigate();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [currentSinger, setCurrentSinger] = useState<QueueItem | null>(null);
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [song, setSong] = useState("");
   const [link, setLink] = useState("");
+  const [user, setUser] = useState<any>(null);
   let dateToday = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }).toString();
   dateToday = dateToday.replace(/\//g, ".");
 
   useEffect(() => {
     fetchQueue();
     fetchOnStageSinger();
+    
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    
+    return () => unsubscribe();
   }, [db]);
 
   const fetchQueue = () => {
@@ -138,16 +149,55 @@ const KaraokeManager = () => {
     //setCurrentSinger(null);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logout realizado",
+        description: "Até logo!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao fazer logout",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3 relative">
             <Mic className="h-8 w-8 text-primary" />
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               Karaoke Manager
             </h1>
+            {/* Login/Logout Button */}
+            <div className="absolute right-0">
+              {user ? (
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => navigate("/login")}
+                  variant="default"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Entrar
+                </Button>
+              )}
+            </div>
           </div>
           <p className="text-muted-foreground text-lg">
             Gerencie sua fila de karaoke de forma fácil e divertida!
