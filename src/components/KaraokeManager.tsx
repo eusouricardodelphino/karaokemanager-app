@@ -38,6 +38,11 @@ const KaraokeManager = () => {
   dateToday = dateToday.replace(/\//g, ".");
 
   useEffect(() => {
+    fetchQueue();
+    fetchOnStageSinger();
+  }, [db]);
+
+  const fetchQueue = () => {
     const queryQueue = query(collection(db, dateToday), orderBy("addedAt", "asc"));
     const unsubscribe = onSnapshot(queryQueue, (snapshot) => {
       const list: QueueItem[] = snapshot.docs.map((d) => ({
@@ -46,8 +51,7 @@ const KaraokeManager = () => {
           }));
       setQueue(list);
     });
-    fetchOnStageSinger();
-  }, [db]);
+  }
 
   const fetchOnStageSinger = () => {
     const querySinger = query(collection(db, "onStage"));
