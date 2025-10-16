@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/firebase";
+import { auth, googleProvider, db } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +22,17 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Salvar dados do usuário no Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        name: name,
+        isAdmin: true, // Usuários criados com email/senha são admin
+        createdAt: new Date().toISOString(),
+      });
+
       toast({
         title: "Cadastro realizado!",
         description: "Bem-vindo ao Karaoke Manager",
@@ -41,7 +52,16 @@ const SignUp = () => {
   const handleGoogleSignUp = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Salvar dados do usuário no Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        name: user.displayName || "",
+        createdAt: new Date().toISOString(),
+      });
+
       toast({
         title: "Cadastro realizado!",
         description: "Bem-vindo ao Karaoke Manager",
