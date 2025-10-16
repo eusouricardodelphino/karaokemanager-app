@@ -4,10 +4,12 @@ import {
   addDoc,
   onSnapshot,
   orderBy,
+  where,
   query,
   serverTimestamp,
   updateDoc,
   doc,
+  setDoc,
   deleteDoc,
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -25,6 +27,8 @@ interface QueueItem {
   id?: string;
   name: string;
   song: string;
+  alreadySang: boolean;
+  onStage?: boolean;
   link?: string;
   addedAt: Date;
 }
@@ -54,7 +58,10 @@ const KaraokeManager = () => {
   }, [db]);
 
   const fetchQueue = () => {
-    const queryQueue = query(collection(db, dateToday), orderBy("addedAt", "asc"));
+    const queryQueue = query(
+      collection(db, dateToday), 
+      where("alreadySang", "==", false), 
+      orderBy("addedAt", "asc"));
     const unsubscribe = onSnapshot(queryQueue, (snapshot) => {
       const list: QueueItem[] = snapshot.docs.map((d) => ({
             id: d.id,
@@ -65,13 +72,14 @@ const KaraokeManager = () => {
   }
 
   const fetchOnStageSinger = () => {
-    const querySinger = query(collection(db, "onStage"));
+    const querySinger = query(
+      collection(db, `onStage`),
+      where("onStage", "==", true));
     const unsubscribe = onSnapshot(querySinger, (snapshot) => {
       const singer: QueueItem[] = snapshot.docs.map((d) => ({
             id: d.id,
             ...(d.data() as QueueItem),
           }));
-      console.log("Current singer data:", singer);
       setCurrentSinger(singer[0]);
     });
     return () => unsubscribe();
@@ -80,14 +88,13 @@ const KaraokeManager = () => {
   const deleteSingerFromQueue = async (singer: QueueItem) => {
     if (!singer.id) return;
     const ref = doc(db, dateToday, singer.id);
-    await deleteDoc(ref);
+    await updateDoc(ref, { alreadySang: true})
   };
 
   const deleteSingerFromStage = async (singer: QueueItem) => {
-    console.log("Deleting singer from Stage:", singer.id);
     if (!singer.id) return;
     const ref = doc(db, 'onStage', singer.id);
-    await deleteDoc(ref);
+    await updateDoc(ref, { onStage: false});
   };
 
   const addToQueue =  async () => {
@@ -103,6 +110,7 @@ const KaraokeManager = () => {
     const newItem: QueueItem = {
       name: name.trim() + " " + surname.trim(),
       song: song.trim(),
+      alreadySang: false,
       link: link.trim() || null,
       addedAt: new Date(),
     };
@@ -124,10 +132,11 @@ const KaraokeManager = () => {
     if (queue.length === 0) return;
     
     const next = queue[0];
+    next.onStage = true;
     const { id, ...nextSinger } = next;
     //setCurrentSinger(next);
     //setQueue(prev => prev.slice(1));
-    await addDoc(collection(db, 'onStage'), nextSinger);
+    await addDoc(collection(db, `onStage`), nextSinger)
     await deleteSingerFromQueue(next);
     fetchOnStageSinger();
     
@@ -137,13 +146,16 @@ const KaraokeManager = () => {
     });
   };
 
-  const finishSinging = () => {
+  const finishSinging = async () => {
     if (!currentSinger) return;
     
     toast({
       title: "Performance finalizada!",
       description: `Obrigado ${currentSinger.name}! 👏`,
     });
+    // Atualiza status do cantor para já cantou 
+    //const ref = doc(db, "onStage", currentSinger.id);
+    //await updateDoc(ref, { onStage: false})
     deleteSingerFromStage(currentSinger);
     fetchOnStageSinger(); 
     //setCurrentSinger(null);
