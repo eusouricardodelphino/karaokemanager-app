@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Mic, Music, Users, Plus, SkipForward, LogIn, LogOut } from "lucide-react";
+import { Music, Users, Plus, SkipForward, LogIn, LogOut } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "../hooks/firebaseContext";
 import { auth } from "@/firebase";
@@ -205,9 +205,9 @@ const KaraokeManager = () => {
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3 relative">
-            <Mic className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Karaoke Manager
+            <span className="text-4xl">🎤</span>
+            <h1 className="text-4xl font-bold">
+              Karaoke<span className="bg-gradient-primary bg-clip-text text-transparent">Manager</span>
             </h1>
             {/* Login/Logout Button */}
             <div className="absolute right-0">
@@ -243,7 +243,7 @@ const KaraokeManager = () => {
         <Card className="bg-gradient-stage border-0 shadow-2xl animate-pulse-glow">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-2xl text-stage-foreground flex items-center justify-center gap-2">
-              <Mic className="h-6 w-6" />
+              <span className="text-2xl">🎤</span>
               No Palco Agora
             </CardTitle>
           </CardHeader>
