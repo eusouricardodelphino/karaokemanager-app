@@ -27,6 +27,7 @@ const SignUp = () => {
 
       // Salvar dados do usuário no Firestore
       await setDoc(doc(db, "users", user.uid), {
+        id: user.uid,
         email: user.email,
         name: name,
         isAdmin: true, // Usuários criados com email/senha são admin
@@ -38,6 +39,7 @@ const SignUp = () => {
         description: "Bem-vindo ao Karaoke Manager",
       });
       navigate("/");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast({
         title: "Erro ao cadastrar",
@@ -67,6 +69,7 @@ const SignUp = () => {
         description: "Bem-vindo ao Karaoke Manager",
       });
       navigate("/");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast({
         title: "Erro ao cadastrar",

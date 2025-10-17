@@ -28,6 +28,7 @@ interface QueueItem {
   name: string;
   song: string;
   alreadySang: boolean;
+  visitDate: string;
   onStage?: boolean;
   link?: string;
   addedAt: Date;
@@ -42,6 +43,7 @@ const KaraokeManager = () => {
   const [surname, setSurname] = useState("");
   const [song, setSong] = useState("");
   const [link, setLink] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   let dateToday = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }).toString();
   dateToday = dateToday.replace(/\//g, ".");
@@ -51,15 +53,35 @@ const KaraokeManager = () => {
     fetchOnStageSinger();
     
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      if (!currentUser) {
+        setUser(null);
+        return;
+      }
+      fetchUser(currentUser);
     });
-    
     return () => unsubscribe();
   }, [db]);
 
+  const fetchUser = (currentUser) => {
+    if (currentUser) {
+    const queryUser = query(
+      collection(db, `users`),
+      where("id", "==", currentUser.uid));
+      onSnapshot(queryUser, (snapshot) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const user: any = snapshot.docs.map((d) => ({
+            id: d.id,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...(d.data() as any),
+          }));
+      console.log("User data from Firestore:", user[0]);
+      setUser(user[0]);
+      //return user[0];
+  })}}
+
   const fetchQueue = () => {
     const queryQueue = query(
-      collection(db, dateToday), 
+      collection(db, 'queue'), 
       where("alreadySang", "==", false), 
       orderBy("addedAt", "asc"));
     const unsubscribe = onSnapshot(queryQueue, (snapshot) => {
@@ -87,7 +109,7 @@ const KaraokeManager = () => {
   
   const deleteSingerFromQueue = async (singer: QueueItem) => {
     if (!singer.id) return;
-    const ref = doc(db, dateToday, singer.id);
+    const ref = doc(db, 'queue', singer.id);
     await updateDoc(ref, { alreadySang: true})
   };
 
@@ -112,10 +134,11 @@ const KaraokeManager = () => {
       song: song.trim(),
       alreadySang: false,
       link: link.trim() || null,
+      visitDate: dateToday,
       addedAt: new Date(),
     };
 
-    await addDoc(collection(db, dateToday), newItem);
+    await addDoc(collection(db, 'queue'), newItem);
 
     setName("");
     setSurname("");
@@ -245,14 +268,16 @@ const KaraokeManager = () => {
                     Ver música
                   </a>
                 )}</p>
-                <Button
-                  onClick={finishSinging}
-                  variant="secondary"
-                  size="lg"
-                  className="mt-4"
-                >
-                  Finalizar Performance
-                </Button>
+                {user && user.isAdmin && (
+                  <Button
+                    onClick={finishSinging}
+                    variant="secondary"
+                    size="lg"
+                    className="mt-4"
+                  >
+                    Finalizar Performance
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="text-stage-foreground/70 text-xl py-8">
@@ -326,11 +351,13 @@ const KaraokeManager = () => {
                 <Users className="h-5 w-5" />
                 Fila ({queue.length})
               </CardTitle>
-              {queue.length > 0 && (
-                <Button onClick={nextSinger} variant="default" size="sm">
+              {queue.length > 0  && (
+                user && user.isAdmin && (
+                  <Button onClick={nextSinger} variant="default" size="sm">
                   <SkipForward className="h-4 w-4 mr-2" />
                   Próximo
                 </Button>
+                )
               )}
             </CardHeader>
             <CardContent>
