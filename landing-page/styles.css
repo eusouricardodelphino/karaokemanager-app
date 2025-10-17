@@ -795,6 +795,10 @@ body {
    RESPONSIVE DESIGN
    ============================================ */
 @media (max-width: 768px) {
+    #header {
+        position: relative;
+    }
+
     .nav-container {
         padding: 1rem;
         flex-direction: column;
