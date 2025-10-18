@@ -366,7 +366,7 @@ const KaraokeManager = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full"
+                      className="w-full text-black"
                     >
                       <Search className="h-4 w-4 mr-2" />
                       Pesquisar música no youtube
