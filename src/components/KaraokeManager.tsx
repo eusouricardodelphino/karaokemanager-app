@@ -204,13 +204,10 @@ const KaraokeManager = () => {
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3 relative">
-            <span className="text-4xl">🎤</span>
-            <h1 className="text-4xl font-bold">
-              Karaoke<span className="bg-gradient-primary bg-clip-text text-transparent">Manager</span>
-            </h1>
-            {/* Login/Logout Button */}
-            <div className="absolute right-0">
+          {/* Mobile: Button on top, logo below | Desktop: All in one line */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-center gap-4 md:gap-3 md:relative">
+            {/* Login/Logout Button - Top on mobile, right on desktop */}
+            <div className="flex justify-end md:absolute md:right-0">
               {user ? (
                 <Button
                   onClick={handleLogout}
@@ -232,6 +229,14 @@ const KaraokeManager = () => {
                   Entrar
                 </Button>
               )}
+            </div>
+            
+            {/* Logo - Below button on mobile, centered on desktop */}
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-4xl">🎤</span>
+              <h1 className="text-4xl font-bold">
+                Karaoke<span className="bg-gradient-primary bg-clip-text text-transparent">Manager</span>
+              </h1>
             </div>
           </div>
           <p className="text-muted-foreground text-lg">
