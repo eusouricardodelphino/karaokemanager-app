@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Music, Users, Plus, SkipForward, LogIn, LogOut } from "lucide-react";
+import { Music, Users, Plus, SkipForward, LogIn, LogOut, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "../hooks/firebaseContext";
 import { auth } from "@/firebase";
@@ -274,6 +274,21 @@ const KaraokeManager = () => {
                   </a>
                 )}</p>
                 {user && user.isAdmin && (
+                  <p>
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent("karaoke " + currentSinger.song)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-stage-foreground/80 hover:text-stage-foreground transition-colors"
+                      >
+                        
+                          <Search className="h-4 w-4 mr-2" />
+                          Pesquisar música
+                        
+                    </a>
+                  </p>
+                )}
+                {user && user.isAdmin && (
                   <Button
                     onClick={finishSinging}
                     variant="secondary"
@@ -333,7 +348,7 @@ const KaraokeManager = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="link">Link da música (opcional)</Label>
+                <Label htmlFor="link">Link da música na versão karaoke (opcional)</Label>
                 <Input
                   id="link"
                   value={link}
@@ -342,6 +357,21 @@ const KaraokeManager = () => {
                   className="bg-background"
                 />
               </div>
+              <a
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent("karaoke " + song)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-black inline-flex items-center w-full text-stage-foreground/80 hover:text-stage-foreground transition-colors"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Pesquisar música no youtube
+                    </Button>
+              </a>
               <Button onClick={addToQueue} className="w-full" size="lg">
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar à Fila
