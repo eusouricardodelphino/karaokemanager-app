@@ -21,7 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "../hooks/firebaseContext";
 import { auth } from "@/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface QueueItem {
   id?: string;
@@ -32,6 +32,7 @@ interface QueueItem {
   onStage?: boolean;
   link?: string;
   addedAt: Date;
+  restaurantId: string;
 }
 
 const KaraokeManager = () => {
@@ -47,6 +48,7 @@ const KaraokeManager = () => {
   const [user, setUser] = useState<any>(null);
   let dateToday = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }).toString();
   dateToday = dateToday.replace(/\//g, ".");
+  const { restaurantId } = useParams();
 
   useEffect(() => {
     fetchQueue();
@@ -67,6 +69,7 @@ const KaraokeManager = () => {
     const queryUser = query(
       collection(db, `users`),
       where("id", "==", currentUser.uid));
+      
       onSnapshot(queryUser, (snapshot) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const user: any = snapshot.docs.map((d) => ({
@@ -82,7 +85,8 @@ const KaraokeManager = () => {
   const fetchQueue = () => {
     const queryQueue = query(
       collection(db, 'queue'), 
-      where("alreadySang", "==", false), 
+      where("alreadySang", "==", false),
+      where("restaurantId", "==", restaurantId), 
       orderBy("addedAt", "asc"));
     const unsubscribe = onSnapshot(queryQueue, (snapshot) => {
       const list: QueueItem[] = snapshot.docs.map((d) => ({
@@ -136,6 +140,7 @@ const KaraokeManager = () => {
       link: link.trim() || null,
       visitDate: dateToday,
       addedAt: new Date(),
+      restaurantId: restaurantId
     };
 
     await addDoc(collection(db, 'queue'), newItem);
