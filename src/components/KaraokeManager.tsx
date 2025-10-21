@@ -27,6 +27,7 @@ import { useNavigate, useParams } from "react-router-dom";
 interface QueueItem {
   id?: string;
   name: string;
+  nameSearch:string;
   song: string;
   band?: string;
   alreadySang: boolean;
@@ -102,7 +103,7 @@ const KaraokeManager = () => {
   const fetchOneSinger = async (name: string) => {
     const q = query(
           collection(db, "queue"),
-          where("name", "==", name),
+          where("nameSearch", "==", name.trim().toLowerCase()),
           where("alreadySang", "==", false),
           where("restaurantId", "==", restaurantId)
         );
@@ -169,6 +170,7 @@ const KaraokeManager = () => {
 
     const newItem: QueueItem = {
       name: name.trim() + " " + surname.trim(),
+      nameSearch: (name.trim() + " " + surname.trim()).toLowerCase(),
       song: song.trim(),
       band: band.trim(),
       alreadySang: false,
