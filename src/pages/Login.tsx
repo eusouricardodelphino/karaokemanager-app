@@ -20,12 +20,13 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user
       toast({
         title: "Login realizado!",
         description: "Bem-vindo de volta",
       });
-      navigate("/");
+      navigate(`/${user.uid}`);
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login",

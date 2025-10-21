@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   updateDoc,
   doc,
+  getDocs,
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
@@ -27,6 +28,7 @@ interface QueueItem {
   id?: string;
   name: string;
   song: string;
+  band?: string;
   alreadySang: boolean;
   visitDate: string;
   onStage?: boolean;
@@ -43,6 +45,7 @@ const KaraokeManager = () => {
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [song, setSong] = useState("");
+  const [band, setBand] = useState("");
   const [link, setLink] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
@@ -77,7 +80,6 @@ const KaraokeManager = () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ...(d.data() as any),
           }));
-      console.log("User data from Firestore:", user[0]);
       setUser(user[0]);
       //return user[0];
   })}}
@@ -97,10 +99,42 @@ const KaraokeManager = () => {
     });
   }
 
+  const fetchOneSinger = async (name: string) => {
+    const q = query(
+          collection(db, "queue"),
+          where("name", "==", name),
+          where("alreadySang", "==", false),
+          where("restaurantId", "==", restaurantId)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        return querySnapshot;
+  }
+
+  const fetchOnStageEngaged = async () => {
+    const q = query(
+          collection(db, `onStage`),
+          where("onStage", "==", true),
+          where("restaurantId", "==", restaurantId)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          return true
+        } else {
+          return false
+        }
+
+  }
+
   const fetchOnStageSinger = () => {
     const querySinger = query(
       collection(db, `onStage`),
-      where("onStage", "==", true));
+      where("onStage", "==", true),
+      where("restaurantId", "==", restaurantId)
+    );
     const unsubscribe = onSnapshot(querySinger, (snapshot) => {
       const singer: QueueItem[] = snapshot.docs.map((d) => ({
             id: d.id,
@@ -136,12 +170,24 @@ const KaraokeManager = () => {
     const newItem: QueueItem = {
       name: name.trim() + " " + surname.trim(),
       song: song.trim(),
+      band: band.trim(),
       alreadySang: false,
       link: link.trim() || null,
       visitDate: dateToday,
       addedAt: new Date(),
       restaurantId: restaurantId
     };
+
+    const alreadyInQueue = await fetchOneSinger (newItem.name)
+
+    if (!alreadyInQueue.empty) {
+      toast({
+        title: "Você já está na fila",
+        description: "Espere sua vez! Após, é possível entrar novamente na fila. ",
+        variant: "destructive",
+      });
+      return;
+    }
 
     await addDoc(collection(db, 'queue'), newItem);
 
@@ -159,6 +205,15 @@ const KaraokeManager = () => {
   const nextSinger = async () => {
     if (queue.length === 0) return;
     
+    if (await fetchOnStageEngaged()) {
+      toast({
+        title: "Palco ocupado",
+        description: `Aguarde o cantor atual finalizar sua performance.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const next = queue[0];
     next.onStage = true;
     const { id, ...nextSinger } = next;
@@ -281,7 +336,7 @@ const KaraokeManager = () => {
                 {user && user.isAdmin && (
                   <p>
                     <a
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent("karaoke " + currentSinger.song)}`}
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent("karaoke " + currentSinger.song + " " + (currentSinger.band || ""))}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 text-stage-foreground/80 hover:text-stage-foreground transition-colors"
@@ -352,6 +407,16 @@ const KaraokeManager = () => {
                   className="bg-background"
                 />
               </div>
+               <div className="space-y-2">
+                <Label htmlFor="song">Cantor ou banda(opcional)</Label>
+                <Input
+                  id="band"
+                  value={band}
+                  onChange={(e) => setBand(e.target.value)}
+                  placeholder="Nome da banda/artista"
+                  className="bg-background"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="link">Link da música na versão karaoke (opcional)</Label>
                 <Input
@@ -363,7 +428,7 @@ const KaraokeManager = () => {
                 />
               </div>
               <a
-                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent("karaoke " + song)}`}
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent("karaoke " + song + (band || ""))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-black inline-flex items-center w-full text-stage-foreground/80 hover:text-stage-foreground transition-colors"
