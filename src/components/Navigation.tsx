@@ -1,0 +1,104 @@
+import { Home, Plus, Settings, LogIn } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { auth } from "@/firebase";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+
+const Navigation = () => {
+  const { restaurantId } = useParams();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(!!user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const navItems = [
+    { path: `/${restaurantId}`, icon: Home, label: "Home" },
+    { path: `/${restaurantId}/add`, icon: Plus, label: "Adicionar" },
+    { path: `/${restaurantId}/settings`, icon: Settings, label: "Configurações" },
+  ];
+
+  if (!isAuthenticated) {
+    navItems.push({ path: "/login", icon: LogIn, label: "Entrar" });
+  }
+
+  return (
+    <>
+      {/* Desktop Navigation - Top */}
+      <nav className="hidden md:block fixed top-0 left-0 right-0 bg-card border-b border-border z-50 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎤</span>
+              <h1 className="text-xl font-bold">
+                Karaoke<span className="bg-gradient-primary bg-clip-text text-transparent">Manager</span>
+              </h1>
+            </div>
+            <div className="flex gap-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
+                    }`
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile Navigation - Bottom (iOS style) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 shadow-lg">
+        <div className="flex justify-around items-center h-20 px-2 pb-safe">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div
+                    className={`p-2 rounded-xl transition-all ${
+                      isActive ? "bg-primary/10" : ""
+                    }`}
+                  >
+                    <item.icon className="h-6 w-6" />
+                  </div>
+                  <span className="text-xs font-medium">{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+
+      {/* Spacer for fixed navigation */}
+      <div className="h-16 hidden md:block" />
+      <div className="h-20 md:hidden" />
+    </>
+  );
+};
+
+export default Navigation;
