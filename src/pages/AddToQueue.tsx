@@ -104,7 +104,7 @@ const AddToQueue = () => {
     });
 
     setTimeout(function() {
-      navigate(`/${restaurantId}`)
+      navigate(`/${restaurantId}#palco`)
     }, 1800);
   };
 

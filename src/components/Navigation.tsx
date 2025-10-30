@@ -44,7 +44,7 @@ const Navigation = () => {
 
   const navItems: NavItem[] = [
     { path: `/${restaurantId}`, icon: Home, label: "Home" },
-    { path: `/${restaurantId}/add`, icon: Plus, label: "Adicionar" },
+    { path: `/${restaurantId}/add`, icon: Plus, label: "Cantar" },
     { path: `/${restaurantId}/settings`, icon: Settings, label: "Configurações" },
   ];
 
