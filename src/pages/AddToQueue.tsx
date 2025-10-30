@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 
 interface QueueItem {
@@ -38,6 +38,7 @@ const AddToQueue = () => {
   const [band, setBand] = useState("");
   const [link, setLink] = useState("");
   const { restaurantId } = useParams();
+  const navigate = useNavigate();
 
   let dateToday = new Date()
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })
@@ -101,6 +102,10 @@ const AddToQueue = () => {
       title: "Adicionado à fila!",
       description: `${newItem.name} foi adicionado para cantar "${newItem.song}"`,
     });
+
+    setTimeout(function() {
+      navigate(`/${restaurantId}`)
+    }, 1800);
   };
 
   return (

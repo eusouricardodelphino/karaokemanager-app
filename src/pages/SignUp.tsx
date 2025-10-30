@@ -38,7 +38,7 @@ const SignUp = () => {
         title: "Cadastro realizado!",
         description: "Bem-vindo ao Karaoke Manager",
       });
-      navigate("/");
+      navigate(`/${user.uid}`);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast({
