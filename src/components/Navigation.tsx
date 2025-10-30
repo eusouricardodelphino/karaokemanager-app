@@ -28,6 +28,18 @@ const Navigation = () => {
 
   return (
     <>
+      {/* Mobile Header - Top */}
+      <header className="md:hidden fixed top-0 left-0 right-0 bg-card border-b border-border z-50 shadow-sm">
+        <div className="flex items-center justify-center h-14 px-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎤</span>
+            <h1 className="text-lg font-bold">
+              Karaoke<span className="bg-gradient-primary bg-clip-text text-transparent">Manager</span>
+            </h1>
+          </div>
+        </div>
+      </header>
+
       {/* Desktop Navigation - Top */}
       <nav className="hidden md:block fixed top-0 left-0 right-0 bg-card border-b border-border z-50 shadow-sm">
         <div className="container mx-auto px-4">
@@ -96,7 +108,7 @@ const Navigation = () => {
 
       {/* Spacer for fixed navigation */}
       <div className="h-16 hidden md:block" />
-      <div className="h-20 md:hidden" />
+      <div className="h-14 md:hidden" />
     </>
   );
 };
