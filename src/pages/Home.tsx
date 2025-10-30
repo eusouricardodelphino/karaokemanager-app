@@ -12,11 +12,11 @@ import {
 } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Music, Users, SkipForward, LogOut, Search } from "lucide-react";
+import { Music, Users, SkipForward, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
 import { auth } from "@/firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate, useParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 
@@ -172,20 +172,6 @@ const Home = () => {
     fetchOnStageSinger();
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: "Logout realizado",
-        description: "Até logo!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao fazer logout",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -193,26 +179,6 @@ const Home = () => {
       
       <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
         <div className="max-w-6xl mx-auto space-y-8">
-          {/* Header - Only on mobile */}
-          <div className="text-center space-y-4 md:hidden">
-            <div className="flex items-center justify-between">
-              {user && (
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sair
-                </Button>
-              )}
-            </div>
-            <p className="text-muted-foreground">
-              Gerencie sua fila de karaoke de forma fácil e divertida!
-            </p>
-          </div>
-
           {/* Current Singer */}
           <Card className="bg-gradient-stage border-0 shadow-2xl animate-pulse-glow">
             <CardHeader className="text-center pb-4">

@@ -1,39 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, LogOut } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { useTheme } from "@/contexts/ThemeContext";
-import { auth } from "@/firebase";
-import { signOut, onAuthStateChanged } from "firebase/auth";
-import { toast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
 
 const Settings = () => {
   const { theme, setTheme } = useTheme();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: "Logout realizado",
-        description: "Até logo!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao fazer logout",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -86,28 +59,6 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Account Section */}
-          {isAuthenticated && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Conta</CardTitle>
-                <CardDescription>
-                  Gerencie sua conta e sessão
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={handleLogout}
-                  variant="destructive"
-                  className="w-full gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sair da Conta
-                </Button>
-              </CardContent>
-            </Card>
-          )}
 
           {/* About Section */}
           <Card>
