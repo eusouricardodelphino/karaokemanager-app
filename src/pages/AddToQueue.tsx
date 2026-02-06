@@ -103,9 +103,7 @@ const AddToQueue = () => {
       description: `${newItem.name} foi adicionado para cantar "${newItem.song}"`,
     });
 
-    setTimeout(function() {
-      navigate(`/${restaurantId}#palco`)
-    }, 1800);
+    navigate(`/${restaurantId}#palco`)
   };
 
   return (
