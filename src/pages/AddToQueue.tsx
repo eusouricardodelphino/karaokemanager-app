@@ -1,11 +1,4 @@
 import { useState } from "react";
-import {
-  collection,
-  addDoc,
-  where,
-  query,
-  getDocs,
-} from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,20 +8,11 @@ import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
-
-interface QueueItem {
-  id?: string;
-  name: string;
-  nameSearch: string;
-  song: string;
-  band?: string;
-  alreadySang: boolean;
-  visitDate: string;
-  onStage?: boolean;
-  link?: string;
-  addedAt: Date;
-  restaurantId: string;
-}
+import {
+  addSingerToQueue,
+  findSingerInQueue,
+  QueueItem,
+} from "@/services/queueService";
 
 const AddToQueue = () => {
   const { db } = useFirebase();
@@ -44,18 +28,6 @@ const AddToQueue = () => {
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })
     .toString();
   dateToday = dateToday.replace(/\//g, ".");
-
-  const fetchOneSinger = async (name: string) => {
-    const q = query(
-      collection(db, "queue"),
-      where("nameSearch", "==", name.trim().toLowerCase()),
-      where("alreadySang", "==", false),
-      where("restaurantId", "==", restaurantId)
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot;
-  };
 
   const addToQueue = async () => {
     if (!name.trim() || !surname.trim() || !song.trim()) {
@@ -79,7 +51,11 @@ const AddToQueue = () => {
       restaurantId: restaurantId,
     };
 
-    const alreadyInQueue = await fetchOneSinger(newItem.name);
+    const alreadyInQueue = await findSingerInQueue(
+      db,
+      restaurantId,
+      newItem.nameSearch
+    );
 
     if (!alreadyInQueue.empty) {
       toast({
@@ -90,7 +66,7 @@ const AddToQueue = () => {
       return;
     }
 
-    await addDoc(collection(db, "queue"), newItem);
+    await addSingerToQueue(db, newItem);
 
     setName("");
     setSurname("");

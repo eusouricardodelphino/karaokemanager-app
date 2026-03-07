@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Music, Mail, Lock, User } from "lucide-react";
+import type { AppUser } from "@/types/user";
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
@@ -25,14 +26,14 @@ const SignUp = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Salvar dados do usuário no Firestore
-      await setDoc(doc(db, "users", user.uid), {
+      const userData: AppUser = {
         id: user.uid,
-        email: user.email,
-        name: name,
-        isAdmin: true, // Usuários criados com email/senha são admin
+        email: user.email ?? undefined,
+        name,
+        isAdmin: true,
         createdAt: new Date().toISOString(),
-      });
+      };
+      await setDoc(doc(db, "users", user.uid), userData);
 
       toast({
         title: "Cadastro realizado!",
@@ -57,18 +58,19 @@ const SignUp = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Salvar dados do usuário no Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        name: user.displayName || "",
+      const userData: AppUser = {
+        id: user.uid,
+        email: user.email ?? undefined,
+        name: user.displayName ?? "",
         createdAt: new Date().toISOString(),
-      });
+      };
+      await setDoc(doc(db, "users", user.uid), userData);
 
       toast({
         title: "Cadastro realizado!",
         description: "Bem-vindo ao Karaoke Manager",
       });
-      navigate("/");
+      navigate(`/${user.uid}`);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast({

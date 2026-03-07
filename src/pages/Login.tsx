@@ -41,12 +41,13 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
       toast({
         title: "Login realizado!",
         description: "Bem-vindo de volta",
       });
-      navigate("/");
+      navigate(`/${user.uid}`);
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login",

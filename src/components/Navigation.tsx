@@ -1,10 +1,7 @@
 import { Home, Plus, Settings, LogIn, LogOut } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useParams } from "react-router-dom";
-import { auth } from "@/firebase";
-import { useEffect, useState } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -16,31 +13,7 @@ interface NavItem {
 
 const Navigation = () => {
   const { restaurantId } = useParams();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: "Logout realizado",
-        description: "Você saiu da sua conta com sucesso.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao sair",
-        description: "Ocorreu um erro ao tentar sair da conta.",
-        variant: "destructive",
-      });
-    }
-  };
+  const { isAuthenticated, logout } = useCurrentUser();
 
   const navItems: NavItem[] = [
     { path: `/${restaurantId}`, icon: Home, label: "Home" },
@@ -51,7 +24,7 @@ const Navigation = () => {
   if (!isAuthenticated) {
     navItems.push({ path: "/login", icon: LogIn, label: "Entrar" });
   } else {
-    navItems.push({ path: "#", icon: LogOut, label: "Sair", onClick: handleLogout });
+    navItems.push({ path: "#", icon: LogOut, label: "Sair", onClick: logout });
   }
 
   return (

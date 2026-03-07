@@ -1,145 +1,46 @@
 import { useState, useEffect } from "react";
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  where,
-  query,
-  updateDoc,
-  doc,
-  addDoc,
-  getDocs,
-} from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Music, Users, SkipForward, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
-import { auth } from "@/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
-
-interface QueueItem {
-  id?: string;
-  name: string;
-  nameSearch: string;
-  song: string;
-  band?: string;
-  alreadySang: boolean;
-  visitDate: string;
-  onStage?: boolean;
-  link?: string;
-  addedAt: Date;
-  restaurantId: string;
-}
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import {
+  subscribeToQueue,
+  subscribeToOnStageSinger,
+  isStageEngaged,
+  putSingerOnStage,
+  markSingerAsAlreadySang,
+  removeSingerFromStage,
+  QueueItem,
+} from "@/services/queueService";
 
 const Home = () => {
   const { db } = useFirebase();
-  const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [currentSinger, setCurrentSinger] = useState<QueueItem | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [user, setUser] = useState<any>(null);
   const { restaurantId } = useParams();
 
   useEffect(() => {
-    fetchQueue();
-    fetchOnStageSinger();
-
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
-        setUser(null);
-        return;
-      }
-      fetchUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, [db]);
-
-  const fetchUser = (currentUser) => {
-    if (currentUser) {
-      const queryUser = query(
-        collection(db, `users`),
-        where("id", "==", currentUser.uid)
-      );
-
-      onSnapshot(queryUser, (snapshot) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const user: any = snapshot.docs.map((d) => ({
-          id: d.id,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ...(d.data() as any),
-        }));
-        setUser(user[0]);
-      });
-    }
-  };
-
-  const fetchQueue = () => {
-    const queryQueue = query(
-      collection(db, "queue"),
-      where("alreadySang", "==", false),
-      where("restaurantId", "==", restaurantId),
-      orderBy("addedAt", "asc")
+    const queueUnsubscribe = subscribeToQueue(db, restaurantId, setQueue);
+    const stageUnsubscribe = subscribeToOnStageSinger(
+      db,
+      restaurantId,
+      setCurrentSinger
     );
-    const unsubscribe = onSnapshot(queryQueue, (snapshot) => {
-      const list: QueueItem[] = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as QueueItem),
-      }));
-      setQueue(list);
-    });
-  };
-
-  const fetchOnStageEngaged = async () => {
-    const q = query(
-      collection(db, `onStage`),
-      where("onStage", "==", true),
-      where("restaurantId", "==", restaurantId)
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return true;
-    } else {
-      return false;
-    }
-  };
-
-  const fetchOnStageSinger = () => {
-    const querySinger = query(
-      collection(db, `onStage`),
-      where("onStage", "==", true),
-      where("restaurantId", "==", restaurantId)
-    );
-    const unsubscribe = onSnapshot(querySinger, (snapshot) => {
-      const singer: QueueItem[] = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as QueueItem),
-      }));
-      setCurrentSinger(singer[0]);
-    });
-    return () => unsubscribe();
-  };
-
-  const deleteSingerFromQueue = async (singer: QueueItem) => {
-    if (!singer.id) return;
-    const ref = doc(db, "queue", singer.id);
-    await updateDoc(ref, { alreadySang: true });
-  };
-
-  const deleteSingerFromStage = async (singer: QueueItem) => {
-    if (!singer.id) return;
-    const ref = doc(db, "onStage", singer.id);
-    await updateDoc(ref, { onStage: false });
-  };
+    return () => {
+      if (typeof queueUnsubscribe === "function") queueUnsubscribe();
+      if (typeof stageUnsubscribe === "function") stageUnsubscribe();
+    };
+  }, [db, restaurantId]);
 
   const nextSinger = async () => {
     if (queue.length === 0) return;
 
-    if (await fetchOnStageEngaged()) {
+    if (await isStageEngaged(db, restaurantId)) {
       toast({
         title: "Palco ocupado",
         description: `Aguarde o cantor atual finalizar sua performance.`,
@@ -149,11 +50,8 @@ const Home = () => {
     }
 
     const next = queue[0];
-    next.onStage = true;
-    const { id, ...nextSinger } = next;
-    await addDoc(collection(db, `onStage`), nextSinger);
-    await deleteSingerFromQueue(next);
-    fetchOnStageSinger();
+    await putSingerOnStage(db, { ...next, onStage: true });
+    await markSingerAsAlreadySang(db, next);
 
     toast({
       title: "Próximo no palco!",
@@ -168,8 +66,7 @@ const Home = () => {
       title: "Performance finalizada!",
       description: `Obrigado ${currentSinger.name}! 👏`,
     });
-    deleteSingerFromStage(currentSinger);
-    fetchOnStageSinger();
+    await removeSingerFromStage(db, currentSinger);
   };
 
 
