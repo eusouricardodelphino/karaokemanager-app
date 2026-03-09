@@ -1,73 +1,77 @@
-# Welcome to your Lovable project
+# 🎤 Karaoke Manager - App Rooms
 
-## Project info
+Sistema de gerenciamento de filas de Karaokê com suporte a multi-tenancy, permitindo que diferentes estabelecimentos (restaurantes/bares) gerenciem suas próprias filas de forma independente.
 
-**URL**: https://lovable.dev/projects/4059b0ac-9a00-4ee4-9245-02b1e0a44a17
+## 🚀 Funcionalidades
 
-## How can I edit this code?
+-   **Multi-tenancy**: Cada estabelecimento possui sua própria URL e fila exclusiva (`/:restaurantId`).
+-   **Gerenciamento de Fila**: Adição de cantores, visualização em tempo real e controle de quem está no palco.
+-   **Autenticação Multi-nível**:
+    -   **Dono (Owner)**: Gerencia as configurações do estabelecimento e a fila.
+    -   **Usuário (Singer)**: Entra na fila e acompanha o status.
+-   **Sincronização em Tempo Real**: Alimentado por Firebase Firestore.
+-   **Interface Responsiva**: Construída com Tailwind CSS e Radix UI (shadcn/ui).
 
-There are several ways of editing your application.
+## 🛠️ Tech Stack
 
-**Use Lovable**
+-   **Frontend**: React + Vite + TypeScript
+-   **State Management**: TanStack Query (React Query)
+-   **Styling**: Tailwind CSS + shadcn/ui
+-   **Backend/Database**: Firebase (Auth, Firestore, Analytics)
+-   **Routing**: React Router DOM (v6)
+-   **Testing**: Vitest + Testing Library
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4059b0ac-9a00-4ee4-9245-02b1e0a44a17) and start prompting.
+## 🏗️ Arquitetura e Dados
 
-Changes made via Lovable will be committed automatically to this repo.
+O projeto utiliza uma estrutura de dados no Firestore baseada no `restaurantId` (presente na URL) para filtrar as coleções:
 
-**Use your preferred IDE**
+-   `users`: Perfis de usuários e donos.
+-   `queue`: Itens da fila de espera filtrados por `restaurantId`.
+-   `onStage`: Controle de quem está cantando no momento.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## ⚙️ Configuração Local
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Pré-requisitos
+-   Node.js (v18+)
+-   Yarn ou npm
 
-Follow these steps:
+### Instalação
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1.  Clone o repositório:
+    ```bash
+    git clone <repository-url>
+    cd karaoke-manager/app-rooms
+    ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2.  Instale as dependências:
+    ```bash
+    yarn install
+    # ou
+    npm install
+    ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3.  Configure as variáveis de ambiente:
+    Crie um arquivo `.env` na raiz do projeto baseado no `.env-example`:
+    ```env
+    VITE_FIREBASE_API_KEY=your_api_key
+    VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+    VITE_FIREBASE_PROJECT_ID=your_project_id
+    VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+    VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+    VITE_FIREBASE_APP_ID=your_app_id
+    VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+    ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### Execução
 
-**Edit a file directly in GitHub**
+-   **Desenvolvimento**: `yarn dev` ou `npm run dev`
+-   **Build**: `yarn build` ou `npm run build`
+-   **Testes**: `yarn test` ou `npm run test`
+-   **Lint**: `yarn lint` ou `npm run lint`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📖 Como Usar
 
-**Use GitHub Codespaces**
+Para acessar a fila de um restaurante específico, utilize o padrão de URL:
+`http://localhost:5173/nome-do-restaurante`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/4059b0ac-9a00-4ee4-9245-02b1e0a44a17) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Os donos podem gerenciar as configurações em `/:restaurantId/settings` após o login.
