@@ -8,7 +8,25 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/setupTests.ts"],
-    include: ["src/test/*.{test,spec}.{js,ts,jsx,tsx}"],
+    include: ["src/test/**/*.{test,spec}.{js,ts,jsx,tsx}"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/test/**",
+        "src/setupTests.ts",
+        "src/main.tsx",
+        "src/vite-env.d.ts",
+        "src/components/ui/**",
+      ],
+      reporter: ["text", "lcov"],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
+      },
+    },
   },
   resolve: {
     alias: {
