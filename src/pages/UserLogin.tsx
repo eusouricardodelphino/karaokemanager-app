@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/firebase";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,12 @@ const UserLogin = () => {
             </svg>
             {loading ? "Entrando..." : "Entrar com Google"}
           </Button>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Não tem uma conta?{" "}
+            <Link to="/signup" className="text-primary hover:underline font-medium">
+              Criar conta
+            </Link>
+          </p>
         </div>
       </div>
     </div>
