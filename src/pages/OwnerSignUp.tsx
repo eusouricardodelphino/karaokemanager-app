@@ -75,14 +75,21 @@ const OwnerSignUp = () => {
     }
   };
 
+  const isPersonalDataValid = name.trim() !== "" && email.trim() !== "" && password.length >= 6;
   const cnpjDigitsOnly = cnpjDigits(storeCnpj);
   const isCnpjComplete = cnpjDigitsOnly.length === 14;
-  const canSubmit =
-    name.trim() &&
-    email.trim() &&
-    password.length >= 6 &&
-    storeName.trim() &&
-    isCnpjComplete;
+  const isStoreDataValid = storeName.trim() !== "" && isCnpjComplete;
+
+  const handleNext = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isPersonalDataValid) {
+      setActiveTab("loja");
+    }
+  };
+
+  const handleBack = () => {
+    setActiveTab("pessoais");
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -100,14 +107,16 @@ const OwnerSignUp = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={activeTab === "pessoais" ? handleNext : handleSubmit} className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-muted">
                 <TabsTrigger value="pessoais">Dados pessoais</TabsTrigger>
-                <TabsTrigger value="loja">Dados da loja</TabsTrigger>
+                <TabsTrigger value="loja" disabled={!isPersonalDataValid}>Dados da loja</TabsTrigger>
               </TabsList>
+              
+              {/* Somente a aba ativa é renderizada ou visível para evitar conflitos de validação nativa */}
 
-              <TabsContent value="pessoais" className="space-y-4 mt-4 data-[state=inactive]:hidden" forceMount>
+              <TabsContent value="pessoais" className="space-y-4 mt-4 data-[state=inactive]:hidden">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
@@ -158,7 +167,7 @@ const OwnerSignUp = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="loja" className="space-y-4 mt-4 data-[state=inactive]:hidden" forceMount>
+              <TabsContent value="loja" className="space-y-4 mt-4 data-[state=inactive]:hidden">
                 <div className="space-y-2">
                   <Label htmlFor="storeName" className="flex items-center gap-2">
                     <Building2 className="w-4 h-4" />
@@ -210,13 +219,27 @@ const OwnerSignUp = () => {
               </TabsContent>
             </Tabs>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !canSubmit}
-            >
-              {loading ? "Cadastrando..." : "Criar conta"}
-            </Button>
+            <div className="flex flex-col gap-2">
+              {activeTab === "loja" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  className="w-full"
+                  disabled={loading}
+                >
+                  Voltar
+                </Button>
+              )}
+              <Button
+                type="submit"
+                className="w-full"
+                data-testid="submit-button"
+                disabled={loading || (activeTab === "pessoais" ? !isPersonalDataValid : !isStoreDataValid)}
+              >
+                {loading ? "Cadastrando..." : activeTab === "pessoais" ? "Próximo" : "Criar conta"}
+              </Button>
+            </div>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">

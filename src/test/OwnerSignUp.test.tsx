@@ -46,9 +46,11 @@ describe("OwnerSignUp Component", () => {
     expect(screen.getByLabelText(/^Nome$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Nome da loja/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/CNPJ/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Criar conta/i })).toBeInTheDocument();
+    // Nome da loja e CNPJ não devem estar no documento inicialmente (sem forceMount)
+    expect(screen.queryByLabelText(/Nome da loja/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/CNPJ/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Próximo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Próximo/i })).toBeDisabled();
     expect(screen.getByRole("link", { name: /Entrar no painel/i })).toHaveAttribute("href", "/owner/login");
   });
 
@@ -68,10 +70,20 @@ describe("OwnerSignUp Component", () => {
     fireEvent.change(screen.getByLabelText(/^Nome$/i), { target: { value: "Test User" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "test@example.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "123456" } });
-    fireEvent.click(screen.getByRole("tab", { name: /Dados da loja/i }));
+    
+    const nextButton = screen.getByRole("button", { name: /Próximo/i });
+    expect(nextButton).not.toBeDisabled();
+    fireEvent.click(nextButton);
+
+    expect(screen.getByRole("tab", { name: /Dados da loja/i })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("button", { name: /Criar conta/i })).toBeDisabled();
+
     fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Minha Loja" } });
     fireEvent.change(screen.getByLabelText(/CNPJ/i), { target: { value: "12.345.678/0001-99" } });
-    fireEvent.click(screen.getByRole("button", { name: /Criar conta/i }));
+    
+    const submitButton = screen.getByRole("button", { name: /Criar conta/i });
+    expect(submitButton).not.toBeDisabled();
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(authFunctions.createUserWithEmailAndPassword).toHaveBeenCalledWith(
@@ -112,14 +124,20 @@ describe("OwnerSignUp Component", () => {
     fireEvent.change(screen.getByLabelText(/^Nome$/i), { target: { value: "Test" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "test@example.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "123456" } });
-    fireEvent.click(screen.getByRole("tab", { name: /Dados da loja/i }));
+    fireEvent.click(screen.getByTestId("submit-button"));
+    
+    // Esperar a troca de texto do botão
+    await waitFor(() => {
+      expect(screen.getByTestId("submit-button")).toHaveTextContent(/Criar conta/i);
+    });
+
     fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Loja" } });
     fireEvent.change(screen.getByLabelText(/CNPJ/i), { target: { value: "12.345.678/0001-99" } });
-    fireEvent.click(screen.getByRole("button", { name: /Criar conta/i }));
+    fireEvent.click(screen.getByTestId("submit-button"));
 
     await waitFor(() => {
       expect(authFunctions.createUserWithEmailAndPassword).toHaveBeenCalled();
-      expect(screen.getByRole("button", { name: /Criar conta/i })).not.toBeDisabled();
+      expect(screen.getByTestId("submit-button")).not.toBeDisabled();
     });
   });
 });
