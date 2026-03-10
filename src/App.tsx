@@ -10,6 +10,8 @@ import AddToQueue from "./pages/AddToQueue";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import OwnerSignUp from "./pages/OwnerSignUp";
+import UserSignUp from "./pages/UserSignUp";
 import UserLogin from "./pages/UserLogin";
 import OwnerLogin from "./pages/OwnerLogin";
 import NotFound from "./pages/NotFound";
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/:restaurantId/settings" element={<Settings />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/owner/signup" element={<OwnerSignUp />} />
+            <Route path="/users/signup" element={<UserSignUp />} />
             <Route path="/users/login" element={<UserLogin />} />
             <Route path="/owner/login" element={<OwnerLogin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

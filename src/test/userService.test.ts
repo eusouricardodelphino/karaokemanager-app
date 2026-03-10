@@ -49,7 +49,7 @@ describe("userService - subscribeToUser", () => {
       data: () => ({
         name: "Test User",
         email: "test@example.com",
-        isAdmin: true,
+        role: "owner",
         createdAt: "2024-01-01",
       }),
     };
@@ -66,7 +66,7 @@ describe("userService - subscribeToUser", () => {
       expect.objectContaining({
         name: "Test User",
         email: "test@example.com",
-        isAdmin: true,
+        role: "owner",
       })
     );
   });

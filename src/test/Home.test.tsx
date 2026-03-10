@@ -94,7 +94,7 @@ describe("Home Component", () => {
 
   it("shows admin buttons when user is admin and there is a singer on stage", () => {
     vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValue({
-      user: { id: "u1", name: "Admin", isAdmin: true, createdAt: "" },
+      user: { id: "u1", name: "Admin", role: "owner", createdAt: "" },
       isAuthenticated: true,
       isLoading: false,
       logout: vi.fn(),
@@ -110,7 +110,7 @@ describe("Home Component", () => {
 
   it("shows 'Próximo' button when user is admin and queue is not empty", () => {
     vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValue({
-      user: { id: "u1", name: "Admin", isAdmin: true, createdAt: "" },
+      user: { id: "u1", name: "Admin", role: "owner", createdAt: "" },
       isAuthenticated: true,
       isLoading: false,
       logout: vi.fn(),

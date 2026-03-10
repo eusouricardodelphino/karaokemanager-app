@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase";
 import { Button } from "@/components/ui/button";
@@ -95,6 +95,13 @@ const OwnerLogin = () => {
               {loading ? "Acessando..." : "Entrar no Painel"}
             </Button>
           </form>
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Não tem uma conta?{" "}
+            <Link to="/owner/signup" className="text-primary hover:underline font-medium">
+              Cadastrar como dono
+            </Link>
+          </p>
         </div>
       </div>
     </div>

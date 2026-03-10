@@ -7,6 +7,7 @@ import { useFirebase } from "@/hooks/firebaseContext";
 import { useParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { isOwner } from "@/types/user";
 import {
   subscribeToQueue,
   subscribeToOnStageSinger,
@@ -106,7 +107,7 @@ const Home = () => {
                       </a>
                     )}
                   </p>
-                  {user && user.isAdmin && (
+                  {user && isOwner(user) && (
                     <p>
                       <a
                         href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
@@ -124,7 +125,7 @@ const Home = () => {
                       </a>
                     </p>
                   )}
-                  {user && user.isAdmin && (
+                  {user && isOwner(user) && (
                     <Button
                       onClick={finishSinging}
                       variant="secondary"
@@ -150,7 +151,7 @@ const Home = () => {
                 <Users className="h-5 w-5" />
                 Fila ({queue.length})
               </CardTitle>
-              {queue.length > 0 && user && user.isAdmin && (
+              {queue.length > 0 && user && isOwner(user) && (
                 <Button onClick={nextSinger} variant="default" size="sm">
                   <SkipForward className="h-4 w-4 mr-2" />
                   Próximo
