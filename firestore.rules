@@ -1,0 +1,260 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────────
+    // FUNÇÕES AUXILIARES
+    // ─────────────────────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isAuth() && getUser().role == role;
+    }
+
+    function isSuperAdmin() {
+      return hasRole('superadmin');
+    }
+
+    function getStore(storeId) {
+      return get(/databases/$(database)/documents/stores/$(storeId)).data;
+    }
+
+    function isStoreOwner(storeId) {
+      return isAuth() && getStore(storeId).ownerId == request.auth.uid;
+    }
+
+    function isStoreStaff(storeId) {
+      return isAuth() && request.auth.uid in getStore(storeId).staffIds;
+    }
+
+    // Owner ou staff têm acesso operacional à loja
+    function hasStoreAccess(storeId) {
+      return isStoreOwner(storeId) || isStoreStaff(storeId);
+    }
+
+    // ── Trial e plano ────────────────────────────────────────────
+
+    // trialStartedAt é um Timestamp do servidor — nunca manipulável pelo cliente
+    function isTrialActive(storeData) {
+      return storeData.keys().hasAll(['trialStartedAt', 'trialDays'])
+        && request.time < storeData.trialStartedAt + duration.value(storeData.trialDays, 'd');
+    }
+
+    function hasPaidPlan(storeData) {
+      return storeData.keys().hasAny(['subscription'])
+        && storeData.subscription.status == 'active';
+    }
+
+    // Loja pode operar? (trial válido OU assinatura paga)
+    function storeIsOperational(storeId) {
+      let s = getStore(storeId);
+      return s.active == true && (hasPaidPlan(s) || isTrialActive(s));
+    }
+
+
+    // ─────────────────────────────────────────────────────────────
+    // COLEÇÃO: users
+    // ─────────────────────────────────────────────────────────────
+    match /users/{userId} {
+
+      // Leitura: próprio usuário, staff/owner da mesma loja, ou superadmin
+      allow read: if isAuth() && (isSelf(userId) || isSuperAdmin());
+
+      // Criação: próprio usuário no cadastro
+      allow create: if isAuth()
+        && isSelf(userId)
+        && request.resource.data.keys().hasAll(['name', 'email', 'role', 'createdAt'])
+        && request.resource.data.role in ['owner', 'staff', 'singer'];
+
+      // Atualização: próprio usuário edita perfil (sem mudar role/email);
+      // superadmin pode tudo
+      allow update: if isAuth() && (
+        isSuperAdmin()
+        || (
+          isSelf(userId)
+          && !('role' in request.resource.data.diff(resource.data).affectedKeys())
+          && !('email' in request.resource.data.diff(resource.data).affectedKeys())
+        )
+      );
+
+      // Deleção: só superadmin
+      allow delete: if isSuperAdmin();
+    }
+
+
+    // ─────────────────────────────────────────────────────────────
+    // COLEÇÃO: stores
+    // ─────────────────────────────────────────────────────────────
+    match /stores/{storeId} {
+
+      // Leitura: owner, staff ou superadmin
+      allow read: if isAuth() && (isSuperAdmin() || hasStoreAccess(storeId));
+
+      // Criação: role 'owner', vincula ao próprio uid,
+      // trialStartedAt deve ser serverTimestamp (não editável)
+      allow create: if isAuth()
+        && hasRole('owner')
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+             'name', 'ownerId', 'createdAt',
+             'trialStartedAt', 'trialDays', 'subscription'
+           ])
+        && request.resource.data.subscription.status == 'trial'
+        && request.resource.data.trialDays == 30;
+
+      // Atualização: owner edita a loja, mas não pode mudar ownerId nem subscription
+      // subscription só muda via Cloud Function (webhook de pagamento)
+      allow update: if isAuth() && (
+        isSuperAdmin()
+        || (
+          isStoreOwner(storeId)
+          && !('ownerId'      in request.resource.data.diff(resource.data).affectedKeys())
+          && !('subscription' in request.resource.data.diff(resource.data).affectedKeys())
+          && !('trialStartedAt' in request.resource.data.diff(resource.data).affectedKeys())
+        )
+      );
+
+      // Deleção: só superadmin
+      allow delete: if isSuperAdmin();
+
+
+      // ───────────────────────────────────────────────────────
+      // SUBCOLEÇÃO: rooms
+      // stores/{storeId}/rooms/{roomId}
+      // ───────────────────────────────────────────────────────
+      match /rooms/{roomId} {
+
+        allow read: if isAuth() && (isSuperAdmin() || hasStoreAccess(storeId));
+
+        allow create, update: if isAuth()
+          && hasStoreAccess(storeId)
+          && storeIsOperational(storeId);
+
+        allow delete: if isAuth() && (isSuperAdmin() || isStoreOwner(storeId));
+
+
+        // ─────────────────────────────────────────────────────
+        // SUBCOLEÇÃO: sessions  (ID = "YYYY-MM-DD")
+        // stores/{storeId}/rooms/{roomId}/sessions/{date}
+        // ─────────────────────────────────────────────────────
+        match /sessions/{date} {
+
+          // staff/owner veem tudo; singers só veem sessões abertas
+          allow read: if isAuth() && (
+            isSuperAdmin()
+            || hasStoreAccess(storeId)
+            || (hasRole('singer') && resource.data.status == 'open')
+          );
+
+          // Criação: staff/owner com loja operacional
+          // ID do documento deve bater com o campo date
+          allow create: if isAuth()
+            && hasStoreAccess(storeId)
+            && storeIsOperational(storeId)
+            && request.resource.data.keys().hasAll(['date', 'status', 'openedAt', 'openedBy'])
+            && request.resource.data.status == 'open'
+            && request.resource.data.date == date;
+
+          allow update: if isAuth()
+            && hasStoreAccess(storeId)
+            && storeIsOperational(storeId);
+
+          // Sessões não são deletadas — são fechadas via status
+          allow delete: if isSuperAdmin();
+        }
+
+
+        // ─────────────────────────────────────────────────────
+        // SUBCOLEÇÃO: queue
+        // stores/{storeId}/rooms/{roomId}/queue/{queueId}
+        // ─────────────────────────────────────────────────────
+        match /queue/{queueId} {
+
+          // Singers autenticados podem ver a fila para acompanhar a vez
+          allow read: if isAuth() && (
+            isSuperAdmin()
+            || hasStoreAccess(storeId)
+            || hasRole('singer')
+          );
+
+          // Singer entra na fila com o próprio userId;
+          // staff/owner podem adicionar qualquer entrada (cantores anônimos inclusive)
+          allow create: if isAuth()
+            && storeIsOperational(storeId)
+            && (
+              hasStoreAccess(storeId)
+              || (
+                hasRole('singer')
+                && request.resource.data.userId == request.auth.uid
+                && request.resource.data.status == 'waiting'
+              )
+            );
+
+          // Atualização de status (singing/done/skipped/reordenar): staff/owner
+          allow update: if isAuth()
+            && hasStoreAccess(storeId)
+            && storeIsOperational(storeId);
+
+          // Singer remove a própria entrada (desistência);
+          // staff/owner removem qualquer entrada
+          allow delete: if isAuth() && (
+            isSuperAdmin()
+            || hasStoreAccess(storeId)
+            || (hasRole('singer') && resource.data.userId == request.auth.uid)
+          );
+        }
+
+
+        // ─────────────────────────────────────────────────────
+        // SUBCOLEÇÃO: stage  (documento único: stage/current)
+        // stores/{storeId}/rooms/{roomId}/stage/current
+        // ─────────────────────────────────────────────────────
+        match /stage/{doc} {
+
+          // Leitura pública autenticada — singers precisam ver o palco em tempo real
+          allow read: if isAuth() && (
+            isSuperAdmin()
+            || hasStoreAccess(storeId)
+            || hasRole('singer')
+          );
+
+          // Escrita: só staff/owner com loja operacional
+          allow create, update: if isAuth()
+            && hasStoreAccess(storeId)
+            && storeIsOperational(storeId);
+
+          allow delete: if isSuperAdmin();
+        }
+      }
+
+
+      // ───────────────────────────────────────────────────────
+      // SUBCOLEÇÃO: reports
+      // Gerados exclusivamente por Cloud Functions (Admin SDK)
+      // ───────────────────────────────────────────────────────
+      match /reports/{reportId} {
+        allow read:  if isAuth() && (isSuperAdmin() || isStoreOwner(storeId));
+        allow write: if false; // Admin SDK only
+      }
+    }
+
+
+    // ─────────────────────────────────────────────────────────────
+    // Bloqueia qualquer caminho não mapeado explicitamente
+    // ─────────────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
