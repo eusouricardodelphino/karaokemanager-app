@@ -6,13 +6,13 @@ import { isOwner } from "@/types/user";
 export function OwnerLayout() {
   const { user } = useCurrentUser();
 
-  if (!isOwner(user)) {
-    return <Outlet />;
+  if (isOwner(user)) {
+    return (
+      <TrialGuard storeId={user?.storeId}>
+        <Outlet />
+      </TrialGuard>
+    );
   }
 
-  return (
-    <TrialGuard storeId={user?.storeId}>
-      <Outlet />
-    </TrialGuard>
-  );
+  return <Outlet />;
 }

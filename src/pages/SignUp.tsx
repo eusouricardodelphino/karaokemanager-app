@@ -74,6 +74,7 @@ const SignUp = () => {
       const storeData: Omit<StoreType, "id"> = {
         name: storeName.trim(),
         ownerId: user.uid,
+        active: true,
         createdAt: new Date().toISOString(),
         trialStartedAt: serverTimestamp(),
         trialDays: 30,
@@ -86,7 +87,7 @@ const SignUp = () => {
         title: "Cadastro realizado!",
         description: "Bem-vindo ao painel do Karaoke Manager",
       });
-      navigate(`/${user.uid}`);
+      navigate(`/${storeRef.id}`);
     } catch (error: unknown) {
       toast({
         title: "Erro ao cadastrar",

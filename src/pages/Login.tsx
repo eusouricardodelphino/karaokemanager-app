@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, googleProvider, db } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,21 +14,27 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const redirectTo = searchParams.get("redirect");
+
+  const getDestination = async (uid: string): Promise<string> => {
+    if (redirectTo) return redirectTo;
+    const snap = await getDoc(doc(db, "users", uid));
+    const storeId = snap.data()?.storeId as string | undefined;
+    return storeId ? `/${storeId}` : "/";
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user
-      toast({
-        title: "Login realizado!",
-        description: "Bem-vindo de volta",
-      });
-      navigate(`/${user.uid}`);
-    } catch (error: any) {
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
+      navigate(await getDestination(user.uid), { replace: true });
+    } catch (error: unknown) {
       toast({
         title: "Erro ao fazer login",
         description: "Email ou senha incorretos",
@@ -41,17 +48,13 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      toast({
-        title: "Login realizado!",
-        description: "Bem-vindo de volta",
-      });
-      navigate(`/${user.uid}`);
-    } catch (error: any) {
+      const { user } = await signInWithPopup(auth, googleProvider);
+      toast({ title: "Login realizado!", description: "Bem-vindo de volta" });
+      navigate(await getDestination(user.uid), { replace: true });
+    } catch (error: unknown) {
       toast({
         title: "Erro ao fazer login",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Tente novamente",
         variant: "destructive",
       });
     } finally {

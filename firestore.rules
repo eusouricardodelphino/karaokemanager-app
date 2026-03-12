@@ -181,37 +181,23 @@ service cloud.firestore {
         // ─────────────────────────────────────────────────────
         match /queue/{queueId} {
 
-          // Singers autenticados podem ver a fila para acompanhar a vez
-          allow read: if isAuth() && (
-            isSuperAdmin()
-            || hasStoreAccess(storeId)
-            || hasRole('singer')
-          );
+          // Fila é pública — qualquer um pode visualizar
+          allow read: if true;
 
-          // Singer entra na fila com o próprio userId;
-          // staff/owner podem adicionar qualquer entrada (cantores anônimos inclusive)
+          // Qualquer usuário autenticado pode entrar na fila
           allow create: if isAuth()
             && storeIsOperational(storeId)
-            && (
-              hasStoreAccess(storeId)
-              || (
-                hasRole('singer')
-                && request.resource.data.userId == request.auth.uid
-                && request.resource.data.status == 'waiting'
-              )
-            );
+            && request.resource.data.keys().hasAll(['name', 'song', 'alreadySang', 'addedAt']);
 
-          // Atualização de status (singing/done/skipped/reordenar): staff/owner
+          // Atualização (ex: marcar alreadySang): owner/staff
           allow update: if isAuth()
             && hasStoreAccess(storeId)
             && storeIsOperational(storeId);
 
-          // Singer remove a própria entrada (desistência);
-          // staff/owner removem qualquer entrada
+          // Owner/staff removem qualquer entrada
           allow delete: if isAuth() && (
             isSuperAdmin()
             || hasStoreAccess(storeId)
-            || (hasRole('singer') && resource.data.userId == request.auth.uid)
           );
         }
 
@@ -222,12 +208,8 @@ service cloud.firestore {
         // ─────────────────────────────────────────────────────
         match /stage/{doc} {
 
-          // Leitura pública autenticada — singers precisam ver o palco em tempo real
-          allow read: if isAuth() && (
-            isSuperAdmin()
-            || hasStoreAccess(storeId)
-            || hasRole('singer')
-          );
+          // Palco é público — exibido na tela da sala sem login
+          allow read: if true;
 
           // Escrita: só staff/owner com loja operacional
           allow create, update: if isAuth()

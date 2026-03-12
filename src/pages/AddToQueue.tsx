@@ -11,8 +11,8 @@ import Navigation from "@/components/Navigation";
 import {
   addSingerToQueue,
   findSingerInQueue,
-  QueueItem,
 } from "@/services/queueService";
+import type { QueueItem } from "@/types/queue";
 
 const AddToQueue = () => {
   const { db } = useFirebase();
@@ -48,7 +48,6 @@ const AddToQueue = () => {
       link: link.trim() || null,
       visitDate: dateToday,
       addedAt: new Date(),
-      restaurantId: restaurantId,
     };
 
     const alreadyInQueue = await findSingerInQueue(
@@ -66,7 +65,7 @@ const AddToQueue = () => {
       return;
     }
 
-    await addSingerToQueue(db, newItem);
+    await addSingerToQueue(db, restaurantId!, newItem);
 
     setName("");
     setSurname("");
@@ -79,7 +78,7 @@ const AddToQueue = () => {
       description: `${newItem.name} foi adicionado para cantar "${newItem.song}"`,
     });
 
-    navigate(`/${restaurantId}#palco`)
+    navigate(`/${restaurantId}`)
   };
 
   return (

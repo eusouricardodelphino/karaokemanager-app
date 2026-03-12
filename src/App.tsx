@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OwnerLayout } from "./components/OwnerLayout";
 import Home from "./pages/Home";
 import AddToQueue from "./pages/AddToQueue";
@@ -26,8 +27,12 @@ const App = () => (
           <Routes>
             <Route element={<OwnerLayout />}>
               <Route path="/:restaurantId" element={<Home />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
               <Route path="/:restaurantId/add" element={<AddToQueue />} />
-              <Route path="/:restaurantId/settings" element={<Settings />} />
+              <Route element={<OwnerLayout />}>
+                <Route path="/:restaurantId/settings" element={<Settings />} />
+              </Route>
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />

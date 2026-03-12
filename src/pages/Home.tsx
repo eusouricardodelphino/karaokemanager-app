@@ -13,10 +13,10 @@ import {
   subscribeToOnStageSinger,
   isStageEngaged,
   putSingerOnStage,
-  markSingerAsAlreadySang,
+  markSingerAsAlreadySangById,
   removeSingerFromStage,
-  QueueItem,
 } from "@/services/queueService";
+import type { QueueItem } from "@/types/queue";
 
 const Home = () => {
   const { db } = useFirebase();
@@ -51,8 +51,8 @@ const Home = () => {
     }
 
     const next = queue[0];
-    await putSingerOnStage(db, { ...next, onStage: true });
-    await markSingerAsAlreadySang(db, next);
+    await putSingerOnStage(db, restaurantId!, next);
+    if (next.id) await markSingerAsAlreadySangById(db, restaurantId!, next.id);
 
     toast({
       title: "Próximo no palco!",
@@ -67,7 +67,7 @@ const Home = () => {
       title: "Performance finalizada!",
       description: `Obrigado ${currentSinger.name}! 👏`,
     });
-    await removeSingerFromStage(db, currentSinger);
+    await removeSingerFromStage(db, restaurantId!);
   };
 
 

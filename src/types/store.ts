@@ -17,6 +17,7 @@ export interface Store {
   address?: string;
   /** UID do usuário superadmin dono desta loja */
   ownerId: string;
+  active: boolean;
   createdAt: string;
   /** Definido pelo servidor no momento do cadastro — nunca pelo cliente */
   trialStartedAt?: Timestamp | FieldValue;

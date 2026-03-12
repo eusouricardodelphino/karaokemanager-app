@@ -2,10 +2,13 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   orderBy,
   query,
+  setDoc,
+  serverTimestamp,
   updateDoc,
   where,
   QuerySnapshot,
@@ -16,122 +19,145 @@ import type { QueueItem } from "@/types/queue";
 
 type Unsubscribe = () => void;
 
+const ROOM_ID = "main";
+
+function queueCol(db: Firestore, storeId: string) {
+  return collection(db, `stores/${storeId}/rooms/${ROOM_ID}/queue`);
+}
+
+function stageDoc(db: Firestore, storeId: string) {
+  return doc(db, `stores/${storeId}/rooms/${ROOM_ID}/stage/current`);
+}
+
 export const subscribeToQueue = (
   db: Firestore,
-  restaurantId: string | undefined,
+  storeId: string | undefined,
   listener: (items: QueueItem[]) => void
 ): Unsubscribe | void => {
-  if (!restaurantId) return;
+  if (!storeId) return;
 
   const q = query(
-    collection(db, "queue"),
+    queueCol(db, storeId),
     where("alreadySang", "==", false),
-    where("restaurantId", "==", restaurantId),
     orderBy("addedAt", "asc")
   );
 
-  const unsubscribe = onSnapshot(q, (snapshot) => {
+  return onSnapshot(q, (snapshot) => {
     const list: QueueItem[] = snapshot.docs.map((d) => ({
       id: d.id,
       ...(d.data() as QueueItem),
     }));
     listener(list);
   });
-
-  return unsubscribe;
 };
 
 export const subscribeToOnStageSinger = (
   db: Firestore,
-  restaurantId: string | undefined,
+  storeId: string | undefined,
   listener: (singer: QueueItem | null) => void
 ): Unsubscribe | void => {
-  if (!restaurantId) return;
+  if (!storeId) return;
 
-  const q = query(
-    collection(db, "onStage"),
-    where("onStage", "==", true),
-    where("restaurantId", "==", restaurantId)
-  );
-
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const singers: QueueItem[] = snapshot.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as QueueItem),
-    }));
-    listener(singers[0] ?? null);
+  return onSnapshot(stageDoc(db, storeId), (snap) => {
+    if (!snap.exists()) {
+      listener(null);
+      return;
+    }
+    const data = snap.data();
+    if (!data.name || data.status === "empty") {
+      listener(null);
+      return;
+    }
+    listener({
+      id: snap.id,
+      name: data.name,
+      nameSearch: (data.name as string).toLowerCase(),
+      song: data.song,
+      band: data.band ?? undefined,
+      link: data.link ?? null,
+      alreadySang: true,
+      visitDate: data.visitDate ?? "",
+      addedAt: data.addedAt?.toDate?.() ?? new Date(),
+    });
   });
-
-  return unsubscribe;
 };
 
 export const isStageEngaged = async (
   db: Firestore,
-  restaurantId: string | undefined
+  storeId: string | undefined
 ): Promise<boolean> => {
-  if (!restaurantId) return false;
-
-  const q = query(
-    collection(db, "onStage"),
-    where("onStage", "==", true),
-    where("restaurantId", "==", restaurantId)
-  );
-
-  const snapshot: QuerySnapshot<DocumentData> = await getDocs(q);
-  return !snapshot.empty;
-};
-
-export const markSingerAsAlreadySang = async (
-  db: Firestore,
-  singer: QueueItem
-): Promise<void> => {
-  if (!singer.id) return;
-  const ref = doc(db, "queue", singer.id);
-  await updateDoc(ref, { alreadySang: true });
+  if (!storeId) return false;
+  const snap = await getDoc(stageDoc(db, storeId));
+  return snap.exists() && snap.data().status === "singing";
 };
 
 export const removeSingerFromStage = async (
   db: Firestore,
-  singer: QueueItem
+  storeId: string
 ): Promise<void> => {
-  if (!singer.id) return;
-  const ref = doc(db, "onStage", singer.id);
-  await updateDoc(ref, { onStage: false });
+  await setDoc(stageDoc(db, storeId), {
+    name: null,
+    song: null,
+    band: null,
+    link: null,
+    visitDate: null,
+    queueEntryId: null,
+    status: "empty",
+    updatedAt: serverTimestamp(),
+  });
 };
 
 export const putSingerOnStage = async (
   db: Firestore,
+  storeId: string,
   singer: QueueItem
 ): Promise<void> => {
-  const { id, ...data } = singer;
-  await addDoc(collection(db, "onStage"), { ...data, onStage: true });
+  await setDoc(stageDoc(db, storeId), {
+    name: singer.name,
+    song: singer.song,
+    band: singer.band ?? null,
+    link: singer.link ?? null,
+    visitDate: singer.visitDate,
+    queueEntryId: singer.id ?? null,
+    status: "singing",
+    startedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const markSingerAsAlreadySangById = async (
+  db: Firestore,
+  storeId: string,
+  queueItemId: string
+): Promise<void> => {
+  await updateDoc(doc(queueCol(db, storeId), queueItemId), { alreadySang: true });
 };
 
 export const findSingerInQueue = async (
   db: Firestore,
-  restaurantId: string | undefined,
+  storeId: string | undefined,
   nameSearch: string
 ): Promise<QuerySnapshot<DocumentData>> => {
-  if (!restaurantId) {
-    // retorna snapshot vazio compatível quando não houver restaurantId
-    const q = query(collection(db, "queue"), where("restaurantId", "==", "__none__"));
+  if (!storeId) {
+    const q = query(collection(db, "_empty"), where("x", "==", "__none__"));
     return getDocs(q);
   }
 
-  const q = query(
-    collection(db, "queue"),
-    where("nameSearch", "==", nameSearch.trim().toLowerCase()),
-    where("alreadySang", "==", false),
-    where("restaurantId", "==", restaurantId)
+  return getDocs(
+    query(
+      queueCol(db, storeId),
+      where("nameSearch", "==", nameSearch.trim().toLowerCase()),
+      where("alreadySang", "==", false)
+    )
   );
-
-  return getDocs(q);
 };
 
 export const addSingerToQueue = async (
   db: Firestore,
+  storeId: string,
   item: QueueItem
 ): Promise<void> => {
-  await addDoc(collection(db, "queue"), item);
+  await addDoc(queueCol(db, storeId), item);
 };
 
+export { QueueItem };
