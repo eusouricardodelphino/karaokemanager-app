@@ -5,13 +5,13 @@ import {
   subscribeToQueue,
   subscribeToOnStageSinger,
   isStageEngaged,
-  markSingerAsAlreadySang,
+  markSingerAsAlreadySangById,
   removeSingerFromStage,
   putSingerOnStage,
   findSingerInQueue,
   addSingerToQueue,
-  QueueItem,
 } from "../services/queueService";
+import type { QueueItem } from "../types/queue";
 
 vi.mock("firebase/firestore", async (importOriginal) => {
   const actual = await importOriginal<typeof import("firebase/firestore")>();
@@ -22,10 +22,13 @@ vi.mock("firebase/firestore", async (importOriginal) => {
     where: vi.fn(),
     orderBy: vi.fn(),
     onSnapshot: vi.fn(),
+    getDoc: vi.fn(),
     getDocs: vi.fn(),
     doc: vi.fn(() => "mock-doc-ref"),
     updateDoc: vi.fn(),
     addDoc: vi.fn(),
+    setDoc: vi.fn(),
+    serverTimestamp: vi.fn(() => "mock-server-timestamp"),
   };
 });
 
@@ -38,8 +41,7 @@ const makeSinger = (overrides: Partial<QueueItem> = {}): QueueItem => ({
   song: "Test Song",
   alreadySang: false,
   visitDate: "2024-01-01",
-  addedAt: new Date(),
-  restaurantId: "restaurant-1",
+  addedAt: new Date("2024-01-01T00:00:00Z"),
   ...overrides,
 });
 
@@ -50,24 +52,34 @@ describe("queueService", () => {
 
   // ─── subscribeToQueue ─────────────────────────────────────────────────────
 
-  it("subscribeToQueue: returns undefined when restaurantId is undefined", () => {
+  it("subscribeToQueue: returns undefined when storeId is undefined", () => {
     const result = subscribeToQueue(mockDb, undefined, vi.fn());
     expect(result).toBeUndefined();
     expect(firestoreFunctions.onSnapshot).not.toHaveBeenCalled();
   });
 
-  it("subscribeToQueue: calls onSnapshot and returns unsubscribe fn when restaurantId is provided", () => {
+  it("subscribeToQueue: calls onSnapshot and returns unsubscribe fn when storeId is provided", () => {
     const mockUnsub = vi.fn();
     vi.mocked(firestoreFunctions.onSnapshot).mockReturnValueOnce(mockUnsub as any);
 
     const listener = vi.fn();
-    const result = subscribeToQueue(mockDb, "restaurant-1", listener);
+    const result = subscribeToQueue(mockDb, "store-1", listener);
     expect(firestoreFunctions.onSnapshot).toHaveBeenCalled();
     expect(result).toBe(mockUnsub);
   });
 
   it("subscribeToQueue: listener is called with mapped items from snapshot", () => {
-    const fakeDoc = { id: "q1", data: () => ({ name: "Singer A", song: "Song A", nameSearch: "singer a", alreadySang: false, visitDate: "2024-01-01", addedAt: new Date(), restaurantId: "r1" }) };
+    const fakeDoc = {
+      id: "q1",
+      data: () => ({
+        name: "Singer A",
+        song: "Song A",
+        nameSearch: "singer a",
+        alreadySang: false,
+        visitDate: "2024-01-01",
+        addedAt: new Date(),
+      }),
+    };
 
     vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_q, cb: any) => {
       cb({ docs: [fakeDoc] });
@@ -75,130 +87,183 @@ describe("queueService", () => {
     });
 
     const listener = vi.fn();
-    subscribeToQueue(mockDb, "r1", listener);
-    expect(listener).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ id: "q1", name: "Singer A" })]));
+    subscribeToQueue(mockDb, "store-1", listener);
+    expect(listener).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "q1", name: "Singer A" }),
+      ])
+    );
   });
 
   // ─── subscribeToOnStageSinger ───────────────────────────────────────────
 
-  it("subscribeToOnStageSinger: returns undefined when restaurantId is undefined", () => {
+  it("subscribeToOnStageSinger: returns undefined when storeId is undefined", () => {
     const result = subscribeToOnStageSinger(mockDb, undefined, vi.fn());
     expect(result).toBeUndefined();
   });
 
-  it("subscribeToOnStageSinger: calls listener with null when snapshot is empty", () => {
-    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_q, cb: any) => {
-      cb({ docs: [] });
+  it("subscribeToOnStageSinger: calls listener with null when snapshot does not exist", () => {
+    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_ref, cb: any) => {
+      cb({ exists: () => false });
       return vi.fn();
     });
 
     const listener = vi.fn();
-    subscribeToOnStageSinger(mockDb, "r1", listener);
+    subscribeToOnStageSinger(mockDb, "store-1", listener);
     expect(listener).toHaveBeenCalledWith(null);
   });
 
-  it("subscribeToOnStageSinger: calls listener with first singer when snapshot has docs", () => {
-    const fakeDoc = { id: "s1", data: () => ({ name: "On Stage Singer", song: "Hit Song", nameSearch: "on stage singer", alreadySang: false, visitDate: "2024-01-01", addedAt: new Date(), restaurantId: "r1", onStage: true }) };
-
-    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_q, cb: any) => {
-      cb({ docs: [fakeDoc] });
+  it("subscribeToOnStageSinger: calls listener with null when stage status is empty", () => {
+    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_ref, cb: any) => {
+      cb({ exists: () => true, id: "current", data: () => ({ status: "empty", name: null }) });
       return vi.fn();
     });
 
     const listener = vi.fn();
-    subscribeToOnStageSinger(mockDb, "r1", listener);
-    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ id: "s1", name: "On Stage Singer" }));
+    subscribeToOnStageSinger(mockDb, "store-1", listener);
+    expect(listener).toHaveBeenCalledWith(null);
+  });
+
+  it("subscribeToOnStageSinger: calls listener with singer data when stage is active", () => {
+    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_ref, cb: any) => {
+      cb({
+        exists: () => true,
+        id: "current",
+        data: () => ({
+          name: "Stage Singer",
+          song: "Hit Song",
+          band: "Band X",
+          link: "https://youtube.com/xyz",
+          visitDate: "2024-01-01",
+          addedAt: { toDate: () => new Date() },
+          status: "singing",
+        }),
+      });
+      return vi.fn();
+    });
+
+    const listener = vi.fn();
+    subscribeToOnStageSinger(mockDb, "store-1", listener);
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Stage Singer", song: "Hit Song" })
+    );
   });
 
   // ─── isStageEngaged ───────────────────────────────────────────────────
 
-  it("isStageEngaged: returns false when restaurantId is undefined", async () => {
+  it("isStageEngaged: returns false when storeId is undefined", async () => {
     const result = await isStageEngaged(mockDb, undefined);
     expect(result).toBe(false);
-    expect(firestoreFunctions.getDocs).not.toHaveBeenCalled();
+    expect(firestoreFunctions.getDoc).not.toHaveBeenCalled();
   });
 
-  it("isStageEngaged: returns true when snapshot is not empty", async () => {
-    vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce({ empty: false } as any);
-    const result = await isStageEngaged(mockDb, "r1");
+  it("isStageEngaged: returns true when stage status is singing", async () => {
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({ status: "singing" }),
+    } as any);
+    const result = await isStageEngaged(mockDb, "store-1");
     expect(result).toBe(true);
   });
 
-  it("isStageEngaged: returns false when snapshot is empty", async () => {
-    vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce({ empty: true } as any);
-    const result = await isStageEngaged(mockDb, "r1");
+  it("isStageEngaged: returns false when stage status is empty", async () => {
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({ status: "empty" }),
+    } as any);
+    const result = await isStageEngaged(mockDb, "store-1");
     expect(result).toBe(false);
   });
 
-  // ─── markSingerAsAlreadySang ─────────────────────────────────────────
-
-  it("markSingerAsAlreadySang: does nothing when singer has no id", async () => {
-    const singer = makeSinger({ id: undefined });
-    await markSingerAsAlreadySang(mockDb, singer);
-    expect(firestoreFunctions.updateDoc).not.toHaveBeenCalled();
+  it("isStageEngaged: returns false when snapshot does not exist", async () => {
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValueOnce({
+      exists: () => false,
+    } as any);
+    const result = await isStageEngaged(mockDb, "store-1");
+    expect(result).toBe(false);
   });
 
-  it("markSingerAsAlreadySang: calls updateDoc with alreadySang true", async () => {
+  // ─── markSingerAsAlreadySangById ─────────────────────────────────────────
+
+  it("markSingerAsAlreadySangById: calls updateDoc with alreadySang true", async () => {
     vi.mocked(firestoreFunctions.updateDoc).mockResolvedValueOnce(undefined);
-    const singer = makeSinger();
-    await markSingerAsAlreadySang(mockDb, singer);
-    expect(firestoreFunctions.updateDoc).toHaveBeenCalledWith("mock-doc-ref", { alreadySang: true });
-  });
-
-  // ─── removeSingerFromStage ───────────────────────────────────────────
-
-  it("removeSingerFromStage: does nothing when singer has no id", async () => {
-    await removeSingerFromStage(mockDb, makeSinger({ id: undefined }));
-    expect(firestoreFunctions.updateDoc).not.toHaveBeenCalled();
-  });
-
-  it("removeSingerFromStage: calls updateDoc with onStage false", async () => {
-    vi.mocked(firestoreFunctions.updateDoc).mockResolvedValueOnce(undefined);
-    await removeSingerFromStage(mockDb, makeSinger());
-    expect(firestoreFunctions.updateDoc).toHaveBeenCalledWith("mock-doc-ref", { onStage: false });
-  });
-
-  // ─── putSingerOnStage ────────────────────────────────────────────────
-
-  it("putSingerOnStage: calls addDoc with onStage true and without id", async () => {
-    vi.mocked(firestoreFunctions.addDoc).mockResolvedValueOnce(undefined as any);
-    const singer = makeSinger();
-    await putSingerOnStage(mockDb, singer);
-    expect(firestoreFunctions.addDoc).toHaveBeenCalledWith(
-      "mock-collection",
-      expect.not.objectContaining({ id: "singer-1" })
+    await markSingerAsAlreadySangById(mockDb, "store-1", "queue-item-id");
+    expect(firestoreFunctions.updateDoc).toHaveBeenCalledWith(
+      "mock-doc-ref",
+      { alreadySang: true }
     );
-    expect(firestoreFunctions.addDoc).toHaveBeenCalledWith(
-      "mock-collection",
-      expect.objectContaining({ onStage: true })
+  });
+
+  // ─── removeSingerFromStage ───────────────────────────────────────────────
+
+  it("removeSingerFromStage: calls setDoc with empty stage data", async () => {
+    vi.mocked(firestoreFunctions.setDoc).mockResolvedValueOnce(undefined);
+    await removeSingerFromStage(mockDb, "store-1");
+    expect(firestoreFunctions.setDoc).toHaveBeenCalledWith(
+      "mock-doc-ref",
+      expect.objectContaining({ status: "empty", name: null })
+    );
+  });
+
+  // ─── putSingerOnStage ────────────────────────────────────────────────────
+
+  it("putSingerOnStage: calls setDoc with singer data and status singing", async () => {
+    vi.mocked(firestoreFunctions.setDoc).mockResolvedValueOnce(undefined);
+    const singer = makeSinger();
+    await putSingerOnStage(mockDb, "store-1", singer);
+    expect(firestoreFunctions.setDoc).toHaveBeenCalledWith(
+      "mock-doc-ref",
+      expect.objectContaining({ name: "Test Singer", song: "Test Song", status: "singing" })
+    );
+  });
+
+  it("putSingerOnStage: uses null for band and link when not provided", async () => {
+    vi.mocked(firestoreFunctions.setDoc).mockResolvedValueOnce(undefined);
+    const singer = makeSinger({ band: undefined, link: undefined });
+    await putSingerOnStage(mockDb, "store-1", singer);
+    expect(firestoreFunctions.setDoc).toHaveBeenCalledWith(
+      "mock-doc-ref",
+      expect.objectContaining({ band: null, link: null })
     );
   });
 
   // ─── findSingerInQueue ──────────────────────────────────────────────
 
-  it("findSingerInQueue: calls getDocs with fallback query when restaurantId is undefined", async () => {
-    const mockSnapshot = { docs: [] };
+  it("findSingerInQueue: calls getDocs with fallback query when storeId is undefined", async () => {
+    const mockSnapshot = { empty: true, docs: [] };
     vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce(mockSnapshot as any);
 
     await findSingerInQueue(mockDb, undefined, "test");
     expect(firestoreFunctions.getDocs).toHaveBeenCalled();
   });
 
-  it("findSingerInQueue: calls getDocs with proper query when restaurantId exists", async () => {
-    const mockSnapshot = { docs: [] };
+  it("findSingerInQueue: calls getDocs with proper query when storeId exists", async () => {
+    const mockSnapshot = { empty: false, docs: [] };
     vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce(mockSnapshot as any);
 
-    const result = await findSingerInQueue(mockDb, "r1", "  Test Singer  ");
+    const result = await findSingerInQueue(mockDb, "store-1", "  Test Singer  ");
     expect(firestoreFunctions.getDocs).toHaveBeenCalled();
     expect(result).toBe(mockSnapshot);
   });
 
+  it("findSingerInQueue: trims and lowercases the name search", async () => {
+    const mockSnapshot = { empty: false, docs: [] };
+    vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce(mockSnapshot as any);
+
+    await findSingerInQueue(mockDb, "store-1", "  JOHN DOE  ");
+    expect(firestoreFunctions.where).toHaveBeenCalledWith(
+      "nameSearch",
+      "==",
+      "john doe"
+    );
+  });
+
   // ─── addSingerToQueue ───────────────────────────────────────────────
 
-  it("addSingerToQueue: calls addDoc with the queue item", async () => {
+  it("addSingerToQueue: calls addDoc with storeId and queue item", async () => {
     vi.mocked(firestoreFunctions.addDoc).mockResolvedValueOnce(undefined as any);
     const singer = makeSinger();
-    await addSingerToQueue(mockDb, singer);
+    await addSingerToQueue(mockDb, "store-1", singer);
     expect(firestoreFunctions.addDoc).toHaveBeenCalledWith("mock-collection", singer);
   });
 });

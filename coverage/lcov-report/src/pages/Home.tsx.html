@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.39% </span>
+                <span class="strong">81.53% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>105/129</span>
+                <span class='fraction'>106/130</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.39% </span>
+                <span class="strong">81.53% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>105/129</span>
+                <span class='fraction'>106/130</span>
             </div>
         
             
@@ -266,7 +266,9 @@
 <a name='L201'></a><a href='#L201'>201</a>
 <a name='L202'></a><a href='#L202'>202</a>
 <a name='L203'></a><a href='#L203'>203</a>
-<a name='L204'></a><a href='#L204'>204</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -282,8 +284,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">12x</span>
@@ -478,15 +480,16 @@ import { useFirebase } from "@/hooks/firebaseContext";
 import { useParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { isOwner } from "@/types/user";
 import {
   subscribeToQueue,
   subscribeToOnStageSinger,
   isStageEngaged,
   putSingerOnStage,
-  markSingerAsAlreadySang,
+  markSingerAsAlreadySangById,
   removeSingerFromStage,
-  QueueItem,
 } from "@/services/queueService";
+import type { QueueItem } from "@/types/queue";
 &nbsp;
 const Home = () =&gt; {
   const { db } = useFirebase();
@@ -521,8 +524,8 @@ const Home = () =&gt; {
 <span class="cstat-no" title="statement not covered" >    }</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    const next = queue[0];</span>
-<span class="cstat-no" title="statement not covered" >    await putSingerOnStage(db, { ...next, onStage: true });</span>
-<span class="cstat-no" title="statement not covered" >    await markSingerAsAlreadySang(db, next);</span>
+<span class="cstat-no" title="statement not covered" >    await putSingerOnStage(db, restaurantId!, next);</span>
+<span class="cstat-no" title="statement not covered" >    if (next.id) await markSingerAsAlreadySangById(db, restaurantId!, next.id);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    toast({</span>
 <span class="cstat-no" title="statement not covered" >      title: "Próximo no palco!",</span>
@@ -537,7 +540,7 @@ const Home = () =&gt; {
 <span class="cstat-no" title="statement not covered" >      title: "Performance finalizada!",</span>
 <span class="cstat-no" title="statement not covered" >      description: `Obrigado ${currentSinger.name}! 👏`,</span>
 <span class="cstat-no" title="statement not covered" >    });</span>
-<span class="cstat-no" title="statement not covered" >    await removeSingerFromStage(db, currentSinger);</span>
+<span class="cstat-no" title="statement not covered" >    await removeSingerFromStage(db, restaurantId!);</span>
 <span class="cstat-no" title="statement not covered" >  };</span>
 &nbsp;
 &nbsp;
@@ -577,7 +580,7 @@ const Home = () =&gt; {
                       &lt;/a&gt;
                     )}
                   &lt;/p&gt;
-                  {user &amp;&amp; user.isAdmin &amp;&amp; (
+                  {user &amp;&amp; isOwner(user) &amp;&amp; (
                     &lt;p&gt;
                       &lt;a
                         href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
@@ -595,7 +598,7 @@ const Home = () =&gt; {
                       &lt;/a&gt;
                     &lt;/p&gt;
                   )}
-                  {user &amp;&amp; user.isAdmin &amp;&amp; (
+                  {user &amp;&amp; isOwner(user) &amp;&amp; (
                     &lt;Button
                       onClick={finishSinging}
                       variant="secondary"
@@ -621,7 +624,7 @@ const Home = () =&gt; {
                 &lt;Users className="h-5 w-5" /&gt;
                 Fila ({queue.length})
               &lt;/CardTitle&gt;
-              {queue.length &gt; 0 &amp;&amp; user &amp;&amp; user.isAdmin &amp;&amp; (
+              {queue.length &gt; 0 &amp;&amp; user &amp;&amp; isOwner(user) &amp;&amp; (
                 &lt;Button onClick={nextSinger} variant="default" size="sm"&gt;
                   &lt;SkipForward className="h-4 w-4 mr-2" /&gt;
                   Próximo
@@ -679,7 +682,7 @@ export default Home;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-09T18:57:47.269Z
+                at 2026-03-12T18:25:18.083Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

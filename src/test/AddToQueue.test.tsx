@@ -83,6 +83,7 @@ describe("AddToQueue Component", () => {
     await waitFor(() => {
       expect(queueService.addSingerToQueue).toHaveBeenCalledWith(
         expect.anything(),
+        "restaurant-1",
         expect.objectContaining({
           name: "Carlos Souza",
           song: "Bohemian Rhapsody",
