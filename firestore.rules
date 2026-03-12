@@ -71,10 +71,10 @@ service cloud.firestore {
       // Leitura: próprio usuário, staff/owner da mesma loja, ou superadmin
       allow read: if isAuth() && (isSelf(userId) || isSuperAdmin());
 
-      // Criação: próprio usuário no cadastro
+      // Criação: próprio usuário no cadastro (email é opcional — pode ser nulo em algumas contas)
       allow create: if isAuth()
         && isSelf(userId)
-        && request.resource.data.keys().hasAll(['name', 'email', 'role', 'createdAt'])
+        && request.resource.data.keys().hasAll(['name', 'role', 'createdAt'])
         && request.resource.data.role in ['owner', 'staff', 'singer'];
 
       // Atualização: próprio usuário edita perfil (sem mudar role/email);
@@ -98,8 +98,9 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────
     match /stores/{storeId} {
 
-      // Leitura: owner, staff ou superadmin
-      allow read: if isAuth() && (isSuperAdmin() || hasStoreAccess(storeId));
+      // Leitura pública (autenticado): necessário para storeIsOperational() nas regras da fila.
+      // Escrita restrita a owner/staff/superadmin.
+      allow read: if isAuth();
 
       // Criação: role 'owner', vincula ao próprio uid,
       // trialStartedAt deve ser serverTimestamp (não editável)

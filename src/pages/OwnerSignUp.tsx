@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/firebase";
-import { addDoc, collection, doc, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +54,11 @@ const OwnerSignUp = () => {
         phone: storePhone.trim() || undefined,
         cnpj: cnpjDigits(storeCnpj) || undefined,
         ownerId: user.uid,
+        active: true,
         createdAt: new Date().toISOString(),
+        trialStartedAt: serverTimestamp(),
+        trialDays: 30,
+        subscription: { status: "trial" },
       };
       const storeRef = await addDoc(collection(db, "stores"), storeData);
       await updateDoc(doc(db, "users", user.uid), { storeId: storeRef.id });
@@ -63,7 +67,7 @@ const OwnerSignUp = () => {
         title: "Cadastro realizado!",
         description: "Bem-vindo ao painel do Karaoke Manager",
       });
-      navigate(`/${user.uid}`);
+      navigate(`/${storeRef.id}`);
     } catch (error: unknown) {
       toast({
         title: "Erro ao cadastrar",

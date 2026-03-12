@@ -1,27 +1,45 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/firebase";
+import { auth, googleProvider, db } from "@/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Music } from "lucide-react";
+import type { AppUser } from "@/types/user";
 
 const UserLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const redirectTo = searchParams.get("redirect");
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+
+      const userRef = doc(db, "users", user.uid);
+      const existing = await getDoc(userRef);
+      if (!existing.exists()) {
+        const userData: AppUser = {
+          id: user.uid,
+          ...(user.email ? { email: user.email } : {}),
+          name: user.displayName ?? "",
+          role: "singer",
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(userRef, userData);
+      }
+
       toast({
         title: "Login realizado!",
         description: "Bem-vindo de volta",
       });
-      // Redirect to a default home or specific user page
-      navigate(`/${user.uid}`);
+      navigate(redirectTo ?? `/${user.uid}`);
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login",

@@ -7,9 +7,7 @@ vi.mock("firebase/firestore", async (importOriginal) => {
   const actual = await importOriginal<typeof import("firebase/firestore")>();
   return {
     ...actual,
-    collection: vi.fn(() => "mock-collection"),
-    query: vi.fn(() => "mock-query"),
-    where: vi.fn(),
+    doc: vi.fn(() => "mock-doc-ref"),
     onSnapshot: vi.fn(),
   };
 });
@@ -21,19 +19,24 @@ describe("userService - subscribeToUser", () => {
     vi.clearAllMocks();
   });
 
-  it("calls onSnapshot with the correct query", () => {
+  it("calls doc with the correct path and onSnapshot on the doc ref", () => {
     const mockUnsub = vi.fn();
     vi.mocked(firestoreFunctions.onSnapshot).mockReturnValueOnce(mockUnsub as any);
 
     const unsubscribe = subscribeToUser(mockDb, "uid-123", vi.fn());
 
-    expect(firestoreFunctions.onSnapshot).toHaveBeenCalled();
+    expect(firestoreFunctions.doc).toHaveBeenCalledWith(mockDb, "users", "uid-123");
+    expect(firestoreFunctions.onSnapshot).toHaveBeenCalledWith(
+      "mock-doc-ref",
+      expect.any(Function),
+      expect.any(Function)
+    );
     expect(unsubscribe).toBe(mockUnsub);
   });
 
-  it("calls listener with null when snapshot is empty", () => {
-    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_q, cb: any) => {
-      cb({ empty: true, docs: [] });
+  it("calls listener with null when snapshot does not exist", () => {
+    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_ref, cb: any) => {
+      cb({ exists: () => false });
       return vi.fn();
     });
 
@@ -43,19 +46,18 @@ describe("userService - subscribeToUser", () => {
     expect(listener).toHaveBeenCalledWith(null);
   });
 
-  it("calls listener with the user from the first document when snapshot has data", () => {
-    const fakeDoc = {
-      id: "firestore-doc-id",
-      data: () => ({
-        name: "Test User",
-        email: "test@example.com",
-        role: "owner",
-        createdAt: "2024-01-01",
-      }),
-    };
-
-    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_q, cb: any) => {
-      cb({ empty: false, docs: [fakeDoc] });
+  it("calls listener with user data when snapshot exists", () => {
+    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_ref, cb: any) => {
+      cb({
+        exists: () => true,
+        id: "uid-123",
+        data: () => ({
+          name: "Test User",
+          email: "test@example.com",
+          role: "owner",
+          createdAt: "2024-01-01",
+        }),
+      });
       return vi.fn();
     });
 
@@ -64,6 +66,7 @@ describe("userService - subscribeToUser", () => {
 
     expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: "uid-123",
         name: "Test User",
         email: "test@example.com",
         role: "owner",
@@ -72,7 +75,7 @@ describe("userService - subscribeToUser", () => {
   });
 
   it("calls listener with null on snapshot error", () => {
-    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_q, _cb: any, errCb: any) => {
+    vi.mocked(firestoreFunctions.onSnapshot).mockImplementation((_ref, _cb: any, errCb: any) => {
       errCb(new Error("Firestore error"));
       return vi.fn();
     });

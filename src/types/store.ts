@@ -15,6 +15,8 @@ export interface Store {
   id?: string;
   name: string;
   address?: string;
+  phone?: string;
+  cnpj?: string;
   /** UID do usuário superadmin dono desta loja */
   ownerId: string;
   active: boolean;

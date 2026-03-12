@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import AddToQueue from "../pages/AddToQueue";
 import * as queueService from "../services/queueService";
 import * as useFirebaseModule from "../hooks/firebaseContext";
+import * as useCurrentUserModule from "../hooks/useCurrentUser";
 
 vi.mock("@/components/Navigation", () => ({ default: () => <nav data-testid="nav" /> }));
 vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn() }));
@@ -15,6 +16,15 @@ vi.mock("@/services/queueService", () => ({
 
 vi.mock("@/hooks/firebaseContext", () => ({
   useFirebase: vi.fn(),
+}));
+
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: vi.fn(),
+}));
+
+vi.mock("@/firebase", () => ({
+  auth: { currentUser: { displayName: "Auth Fallback Name" } },
+  db: {},
 }));
 
 const renderAddToQueue = () =>
@@ -31,19 +41,57 @@ describe("AddToQueue Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useFirebaseModule.useFirebase).mockReturnValue({ db: {} as any });
+    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValue({
+      user: { id: "uid-1", name: "Carlos Souza", role: "singer" },
+      isLoading: false,
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
   });
 
   it("renders the form fields correctly", () => {
     renderAddToQueue();
     expect(document.getElementById("name")).toBeInTheDocument();
-    expect(document.getElementById("surname")).toBeInTheDocument();
     expect(document.getElementById("song")).toBeInTheDocument();
     expect(document.getElementById("band")).toBeInTheDocument();
     expect(document.getElementById("link")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Adicionar à Fila/i })).toBeInTheDocument();
   });
 
-  it("does NOT submit when required fields are empty", async () => {
+  it("name field is pre-filled with Google user name and is read-only for singer", () => {
+    renderAddToQueue();
+    const nameInput = document.getElementById("name") as HTMLInputElement;
+    expect(nameInput.value).toBe("Carlos Souza");
+    expect(nameInput).toHaveAttribute("readonly");
+  });
+
+  it("name field is editable for owner role", () => {
+    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValueOnce({
+      user: { id: "uid-2", name: "Owner User", role: "owner" },
+      isLoading: false,
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
+    renderAddToQueue();
+    const nameInput = document.getElementById("name") as HTMLInputElement;
+    expect(nameInput).not.toHaveAttribute("readonly");
+    fireEvent.change(nameInput, { target: { value: "Custom Singer Name" } });
+    expect(nameInput.value).toBe("Custom Singer Name");
+  });
+
+  it("name field is editable for staff role", () => {
+    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValueOnce({
+      user: { id: "uid-3", name: "Staff User", role: "staff" },
+      isLoading: false,
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
+    renderAddToQueue();
+    const nameInput = document.getElementById("name") as HTMLInputElement;
+    expect(nameInput).not.toHaveAttribute("readonly");
+  });
+
+  it("does NOT submit when song is empty", async () => {
     renderAddToQueue();
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
     await waitFor(() => {
@@ -51,13 +99,23 @@ describe("AddToQueue Component", () => {
     });
   });
 
+  it("falls back to auth.currentUser.displayName when user has no name", () => {
+    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValueOnce({
+      user: { id: "uid-1", name: undefined, role: "singer" },
+      isLoading: false,
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
+    renderAddToQueue();
+    const nameInput = document.getElementById("name") as HTMLInputElement;
+    expect(nameInput.value).toBe("Auth Fallback Name");
+  });
+
   it("prevents adding to queue when singer is already in queue", async () => {
     vi.mocked(queueService.findSingerInQueue).mockResolvedValueOnce({ empty: false } as any);
 
     renderAddToQueue();
 
-    fireEvent.change(document.getElementById("name")!, { target: { value: "João" } });
-    fireEvent.change(document.getElementById("surname")!, { target: { value: "Silva" } });
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
@@ -74,8 +132,6 @@ describe("AddToQueue Component", () => {
 
     renderAddToQueue();
 
-    fireEvent.change(document.getElementById("name")!, { target: { value: "Carlos" } });
-    fireEvent.change(document.getElementById("surname")!, { target: { value: "Souza" } });
     fireEvent.change(document.getElementById("song")!, { target: { value: "Bohemian Rhapsody" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
@@ -92,7 +148,6 @@ describe("AddToQueue Component", () => {
       );
     });
 
-    // After success, the page navigates away — verify the route changed to Home
     await waitFor(() => {
       expect(screen.getByText("Home")).toBeInTheDocument();
     });

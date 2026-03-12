@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, db } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Music } from "lucide-react";
@@ -11,7 +11,10 @@ import type { AppUser } from "@/types/user";
 const UserSignUp = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const redirectTo = searchParams.get("redirect");
 
   const handleGoogleSignUp = async () => {
     setLoading(true);
@@ -19,20 +22,24 @@ const UserSignUp = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      const userData: AppUser = {
-        id: user.uid,
-        email: user.email ?? undefined,
-        name: user.displayName ?? "",
-        role: "user",
-        createdAt: new Date().toISOString(),
-      };
-      await setDoc(doc(db, "users", user.uid), userData);
+      const userRef = doc(db, "users", user.uid);
+      const existing = await getDoc(userRef);
+      if (!existing.exists()) {
+        const userData: AppUser = {
+          id: user.uid,
+          ...(user.email ? { email: user.email } : {}),
+          name: user.displayName ?? "",
+          role: "singer",
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(userRef, userData);
+      }
 
       toast({
         title: "Cadastro realizado!",
         description: "Bem-vindo! Agora você pode entrar na fila.",
       });
-      navigate(`/${user.uid}`);
+      navigate(redirectTo ?? "/login", { replace: true });
     } catch (error: unknown) {
       toast({
         title: "Erro ao cadastrar",

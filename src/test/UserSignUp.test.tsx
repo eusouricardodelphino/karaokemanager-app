@@ -16,7 +16,7 @@ vi.mock("firebase/auth", async (importOriginal) => {
 
 vi.mock("firebase/firestore", async (importOriginal) => {
   const actual = await importOriginal<typeof import("firebase/firestore")>();
-  return { ...actual, setDoc: vi.fn(), doc: vi.fn() };
+  return { ...actual, setDoc: vi.fn(), getDoc: vi.fn(), doc: vi.fn() };
 });
 
 vi.mock("@/firebase", () => ({
@@ -40,12 +40,28 @@ describe("UserSignUp Component", () => {
     expect(screen.getByRole("link", { name: /Entrar/i })).toHaveAttribute("href", "/users/login");
   });
 
+  it("does NOT call setDoc when user document already exists", async () => {
+    const mockUser = { uid: "existing-uid", email: "existing@example.com", displayName: "Existing User" };
+    vi.mocked(authFunctions.signInWithPopup).mockResolvedValueOnce({ user: mockUser } as any);
+    vi.mocked(firestoreFunctions.doc).mockReturnValue("fake-doc-ref" as any);
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValueOnce({ exists: () => true } as any);
+
+    renderWithRouter(<UserSignUp />);
+    fireEvent.click(screen.getByRole("button", { name: /Cadastrar com Google/i }));
+
+    await waitFor(() => {
+      expect(firestoreFunctions.getDoc).toHaveBeenCalled();
+    });
+    expect(firestoreFunctions.setDoc).not.toHaveBeenCalled();
+  });
+
   it("handles google sign up successfully", async () => {
     const mockUser = { uid: "google-uid", email: "google@example.com", displayName: "Google User" };
     vi.mocked(authFunctions.signInWithPopup).mockResolvedValueOnce({
       user: mockUser,
     } as any);
     vi.mocked(firestoreFunctions.doc).mockReturnValue("fake-doc-ref" as any);
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValueOnce({ exists: () => false } as any);
     vi.mocked(firestoreFunctions.setDoc).mockResolvedValueOnce(undefined);
 
     renderWithRouter(<UserSignUp />);
@@ -62,7 +78,7 @@ describe("UserSignUp Component", () => {
           id: "google-uid",
           email: "google@example.com",
           name: "Google User",
-          role: "user",
+          role: "singer",
         })
       );
     });

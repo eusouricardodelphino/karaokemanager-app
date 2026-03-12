@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { auth } from "@/firebase";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import {
@@ -16,13 +18,17 @@ import type { QueueItem } from "@/types/queue";
 
 const AddToQueue = () => {
   const { db } = useFirebase();
-  const [name, setName] = useState("");
-  const [surname, setSurname] = useState("");
+  const { user } = useCurrentUser();
   const [song, setSong] = useState("");
   const [band, setBand] = useState("");
   const [link, setLink] = useState("");
   const { restaurantId } = useParams();
   const navigate = useNavigate();
+
+  const [name, setName] = useState("");
+  const displayName = user?.name || auth.currentUser?.displayName || "";
+  const canEditName = user?.role !== "singer";
+  const effectiveName = canEditName ? name : displayName;
 
   let dateToday = new Date()
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })
@@ -30,18 +36,20 @@ const AddToQueue = () => {
   dateToday = dateToday.replace(/\//g, ".");
 
   const addToQueue = async () => {
-    if (!name.trim() || !surname.trim() || !song.trim()) {
+    if (!effectiveName.trim() || !song.trim()) {
       toast({
         title: "Campos obrigatórios",
-        description: "Nome completo do cantor e música são obrigatórios!",
+        description: !effectiveName.trim()
+          ? "Nome não encontrado. Faça login novamente."
+          : "Música é obrigatória!",
         variant: "destructive",
       });
       return;
     }
 
     const newItem: QueueItem = {
-      name: name.trim() + " " + surname.trim(),
-      nameSearch: (name.trim() + " " + surname.trim()).toLowerCase(),
+      name: effectiveName.trim(),
+      nameSearch: effectiveName.trim().toLowerCase(),
       song: song.trim(),
       band: band.trim(),
       alreadySang: false,
@@ -67,8 +75,6 @@ const AddToQueue = () => {
 
     await addSingerToQueue(db, restaurantId!, newItem);
 
-    setName("");
-    setSurname("");
     setSong("");
     setBand("");
     setLink("");
@@ -78,13 +84,13 @@ const AddToQueue = () => {
       description: `${newItem.name} foi adicionado para cantar "${newItem.song}"`,
     });
 
-    navigate(`/${restaurantId}`)
+    navigate(`/${restaurantId}`);
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
         <div className="max-w-2xl mx-auto">
           <Card className="bg-gradient-card border-0 shadow-lg">
@@ -99,20 +105,11 @@ const AddToQueue = () => {
                 <Label htmlFor="name">Nome *</Label>
                 <Input
                   id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Seu nome"
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="surname">Sobrenome *</Label>
-                <Input
-                  id="surname"
-                  value={surname}
-                  onChange={(e) => setSurname(e.target.value)}
-                  placeholder="Seu sobrenome"
-                  className="bg-background"
+                  value={effectiveName}
+                  onChange={canEditName ? (e) => setName(e.target.value) : undefined}
+                  readOnly={!canEditName}
+                  placeholder={canEditName ? "Nome do cantor" : undefined}
+                  className={!canEditName ? "bg-muted cursor-not-allowed" : "bg-background"}
                 />
               </div>
               <div className="space-y-2">
