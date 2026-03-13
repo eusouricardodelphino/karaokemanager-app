@@ -12,6 +12,8 @@ export interface AppUser {
   role?: "owner" | "staff" | "singer";
   /** ID da loja vinculada ao usuário no cadastro */
   storeId?: string;
+  /** true para usuários autenticados anonimamente */
+  isAnonymous?: boolean;
   createdAt?: string;
 }
 

@@ -7,7 +7,6 @@ import { Plus, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { auth } from "@/firebase";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import {
@@ -26,9 +25,8 @@ const AddToQueue = () => {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
-  const displayName = user?.name || auth.currentUser?.displayName || "";
   const canEditName = user?.role !== "singer";
-  const effectiveName = canEditName ? name : displayName;
+  const effectiveName = canEditName ? name : (user?.name ?? "");
 
   let dateToday = new Date()
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })

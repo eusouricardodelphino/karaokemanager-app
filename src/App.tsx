@@ -12,6 +12,7 @@ import AddToQueue from "./pages/AddToQueue";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import GuestSignIn from "./pages/GuestSignIn";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/guest" element={<GuestSignIn />} />
 
 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

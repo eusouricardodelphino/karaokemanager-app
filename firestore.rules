@@ -26,6 +26,10 @@ service cloud.firestore {
       return hasRole('superadmin');
     }
 
+    function isAnonymousAuth() {
+      return isAuth() && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
     function getStore(storeId) {
       return get(/databases/$(database)/documents/stores/$(storeId)).data;
     }
@@ -71,11 +75,17 @@ service cloud.firestore {
       // Leitura: próprio usuário, staff/owner da mesma loja, ou superadmin
       allow read: if isAuth() && (isSelf(userId) || isSuperAdmin());
 
-      // Criação: próprio usuário no cadastro (email é opcional — pode ser nulo em algumas contas)
+      // Criação: próprio usuário no cadastro.
+      // Anônimos não têm email — exigem isAnonymous: true no lugar.
       allow create: if isAuth()
         && isSelf(userId)
-        && request.resource.data.keys().hasAll(['name','email', 'role', 'createdAt'])
-        && request.resource.data.role in ['owner', 'staff', 'singer'];
+        && request.resource.data.role in ['owner', 'staff', 'singer']
+        && (
+          isAnonymousAuth()
+            ? request.resource.data.keys().hasAll(['name', 'role', 'createdAt', 'isAnonymous'])
+              && request.resource.data.isAnonymous == true
+            : request.resource.data.keys().hasAll(['name', 'email', 'role', 'createdAt'])
+        );
 
       // Atualização: próprio usuário edita perfil (sem mudar role/email);
       // superadmin pode tudo
@@ -151,11 +161,11 @@ service cloud.firestore {
         // ─────────────────────────────────────────────────────
         match /sessions/{date} {
 
-          // staff/owner veem tudo; singers só veem sessões abertas
+          // staff/owner veem tudo; singers (incluindo anônimos) só veem sessões abertas
           allow read: if isAuth() && (
             isSuperAdmin()
             || hasStoreAccess(storeId)
-            || (hasRole('singer') && resource.data.status == 'open')
+            || ((hasRole('singer') || isAnonymousAuth()) && resource.data.status == 'open')
           );
 
           // Criação: staff/owner com loja operacional

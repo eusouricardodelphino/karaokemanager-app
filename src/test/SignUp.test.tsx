@@ -5,13 +5,11 @@ import SignUp from "../pages/SignUp";
 
 vi.mock("@/firebase", () => ({
   auth: {},
-  googleProvider: {},
   db: {},
 }));
 
 vi.mock("firebase/auth", () => ({
   createUserWithEmailAndPassword: vi.fn(),
-  signInWithPopup: vi.fn(),
 }));
 
 vi.mock("firebase/firestore", () => ({
@@ -21,6 +19,7 @@ vi.mock("firebase/firestore", () => ({
   serverTimestamp: vi.fn(),
   setDoc: vi.fn(),
   updateDoc: vi.fn(),
+  getDoc: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-toast", () => ({
@@ -39,13 +38,56 @@ describe("SignUp Component", () => {
     renderWithRouter(<SignUp />);
     expect(screen.getByRole("heading", { name: /Criar Conta/i })).toBeInTheDocument();
     expect(screen.getByText(/Como você quer se cadastrar\?/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cadastrar com Google/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Nome do cantor/i)).toBeInTheDocument();
   });
 
-  it("shows singer tab with Google signup button by default", () => {
+  it("shows singer form with email and password fields by default", () => {
     renderWithRouter(<SignUp />);
-    expect(screen.getByRole("button", { name: /Cadastrar com Google/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Nome do cantor/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
     expect(screen.getByText(/Já tem uma conta\?/i)).toBeInTheDocument();
+  });
+
+  it("submit button is disabled when singer form is empty", () => {
+    renderWithRouter(<SignUp />);
+    const submitBtn = screen.getByTestId("submit-button");
+    expect(submitBtn).toBeDisabled();
+  });
+
+  it("submit button enables when singer form is filled", async () => {
+    renderWithRouter(<SignUp />);
+    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("submit-button")).not.toBeDisabled();
+    });
+  });
+
+  it("calls createUserWithEmailAndPassword on singer form submit", async () => {
+    const { createUserWithEmailAndPassword } = await import("firebase/auth");
+    const { setDoc } = await import("firebase/firestore");
+    vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
+      user: { uid: "singer-uid", email: "joao@email.com", displayName: null },
+    } as any);
+    vi.mocked(setDoc).mockResolvedValue(undefined);
+
+    renderWithRouter(<SignUp />);
+    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
+
+    fireEvent.click(screen.getByTestId("submit-button"));
+
+    await waitFor(() => {
+      expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
+        expect.anything(),
+        "joao@email.com",
+        "senha123"
+      );
+    });
   });
 
   it("shows owner form when owner tab is selected", () => {
@@ -101,22 +143,6 @@ describe("SignUp Component", () => {
         "bar@ze.com",
         "senha123"
       );
-    });
-  });
-
-  it("calls signInWithPopup on Google signup button click", async () => {
-    const { signInWithPopup } = await import("firebase/auth");
-    const { setDoc } = await import("firebase/firestore");
-    vi.mocked(signInWithPopup).mockResolvedValueOnce({
-      user: { uid: "user-uid", email: "user@gmail.com", displayName: "User Name" },
-    } as any);
-    vi.mocked(setDoc).mockResolvedValue(undefined);
-
-    renderWithRouter(<SignUp />);
-    fireEvent.click(screen.getByRole("button", { name: /Cadastrar com Google/i }));
-
-    await waitFor(() => {
-      expect(signInWithPopup).toHaveBeenCalled();
     });
   });
 });
