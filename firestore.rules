@@ -74,7 +74,7 @@ service cloud.firestore {
       // Criação: próprio usuário no cadastro (email é opcional — pode ser nulo em algumas contas)
       allow create: if isAuth()
         && isSelf(userId)
-        && request.resource.data.keys().hasAll(['name', 'role', 'createdAt'])
+        && request.resource.data.keys().hasAll(['name','email', 'role', 'createdAt'])
         && request.resource.data.role in ['owner', 'staff', 'singer'];
 
       // Atualização: próprio usuário edita perfil (sem mudar role/email);

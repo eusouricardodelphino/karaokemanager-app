@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, db } from "@/firebase";
-import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,33 +16,48 @@ type UserType = "singer" | "owner";
 
 const SignUp = () => {
   const [userType, setUserType] = useState<UserType>("singer");
+  const [name, setName] = useState("");
   const [storeName, setStoreName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleGoogleSignUp = async () => {
+  const redirectTo = searchParams.get("redirect");
+
+  const getDestination = async (uid: string): Promise<string> => {
+    if (redirectTo) return redirectTo;
+    const snap = await getDoc(doc(db, "users", uid));
+    const storeId = snap.data()?.storeId as string | undefined;
+    return storeId ? `/${storeId}` : "/";
+  };
+
+  const handleGoogleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      // const result = await signInWithPopup(auth, googleProvider);
+      // const user = result.user;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
       const userData: AppUser = {
         id: user.uid,
         email: user.email ?? undefined,
         name: user.displayName ?? "",
-        role: "user",
+        role: "singer",
         createdAt: new Date().toISOString(),
       };
+      console.log(userData)
       await setDoc(doc(db, "users", user.uid), userData);
 
       toast({
         title: "Cadastro realizado!",
         description: "Bem-vindo! Agora você pode entrar na fila.",
       });
-      navigate(`/${user.uid}`);
+      navigate(redirectTo ? redirectTo : `/${user.uid}`, { replace: true });
     } catch (error: unknown) {
       toast({
         title: "Erro ao cadastrar",
@@ -98,11 +113,16 @@ const SignUp = () => {
       setLoading(false);
     }
   };
-
-  const isOwnerFormValid =
-    storeName.trim() !== "" &&
+    const isSingerFormValid =
+    name.trim() !== "" &&
     email.trim() !== "" &&
-    password.length >= 6;
+    password.length >= 6; 
+
+    const isOwnerFormValid =
+      storeName.trim() !== "" &&
+      email.trim() !== "" &&
+      password.length >= 6;
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500 flex items-center justify-center p-4">
@@ -150,7 +170,7 @@ const SignUp = () => {
 
           {userType === "singer" ? (
             <>
-              <Button
+              {/* <Button
                 type="button"
                 variant="outline"
                 className="w-full py-6 text-base"
@@ -164,7 +184,66 @@ const SignUp = () => {
                   <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
                 {loading ? "Cadastrando..." : "Cadastrar com Google"}
-              </Button>
+              </Button> */}
+              <form onSubmit={handleGoogleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="Name" className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Nome
+                  </Label>
+                  <Input
+                    id="storeName"
+                    type="text"
+                    placeholder="Nome do cantor"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="bg-background/50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="contato@loja.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="bg-background/50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Senha
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="bg-background/50"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  data-testid="submit-button"
+                  disabled={loading || !isSingerFormValid}
+                >
+                  {loading ? "Cadastrando..." : "Criar conta"}
+                </Button>
+              </form>
 
               <p className="text-center text-sm text-muted-foreground mt-6">
                 Já tem uma conta?{" "}

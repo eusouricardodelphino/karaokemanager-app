@@ -159,7 +159,7 @@ const Login = () => {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Não tem uma conta?{" "}
-            <Link to="/signup" className="text-primary hover:underline font-medium">
+            <Link to={ redirectTo ? `/signup?redirect=${redirectTo}` : "/signup"} className="text-primary hover:underline font-medium">
               Criar conta
             </Link>
           </p>
