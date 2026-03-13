@@ -152,15 +152,15 @@ const Home = () => {
             </Card>
           )}
 
-          {/* Closed session banner — visible to all users */}
-          {!activeSession && (
-            <div className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground text-center">
-              A fila ainda não foi aberta. Aguarde o responsável iniciar a sessão.
+          {/* Closed session banner — visible to logged-in users only */}
+          {user && !activeSession && (
+            <div className={`rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground text-center${!isOwner(user) ? " mt-4 md:mt-0" : ""}`}>
+              A fila ainda não foi aberta. Aguarde o início do show.
             </div>
           )}
 
           {/* Current Singer */}
-          <Card className="bg-gradient-stage border-0 shadow-2xl animate-pulse-glow">
+          <Card className={`bg-gradient-stage border-0 shadow-2xl animate-pulse-glow pt-4${!isOwner(user) ? " mt-4 md:mt-0" : ""}`}>
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-2xl text-stage-foreground flex items-center justify-center gap-2">
                 <span className="text-2xl">🎤</span>
