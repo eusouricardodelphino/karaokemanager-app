@@ -22,7 +22,7 @@ const Navigation = () => {
   ];
 
   if (!isAuthenticated) {
-    navItems.push({ path: "/login", icon: LogIn, label: "Entrar" });
+    navItems.push({ path: "/login?redirect=/" + restaurantId, icon: LogIn, label: "Entrar" });
   } else {
     navItems.push({ path: "#", icon: LogOut, label: "Sair", onClick: logout });
   }
@@ -133,7 +133,7 @@ const Navigation = () => {
 
       {/* Spacer for fixed navigation */}
       <div className="h-16 hidden md:block" />
-      <div className="h-14 md:hidden" />
+      <div className="h-12 md:hidden" />
     </>
   );
 };

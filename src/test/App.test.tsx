@@ -8,6 +8,7 @@ vi.mock("../pages/AddToQueue", () => ({ default: () => <div>AddToQueue Page</div
 vi.mock("../pages/Settings", () => ({ default: () => <div>Settings Page</div> }));
 vi.mock("../pages/Login", () => ({ default: () => <div>Login Page</div> }));
 vi.mock("../pages/SignUp", () => ({ default: () => <div>SignUp Page</div> }));
+vi.mock("../pages/GuestSignIn", () => ({ default: () => <div>GuestSignIn Page</div> }));
 vi.mock("../pages/NotFound", () => ({ default: () => <div>NotFound Page</div> }));
 
 // ScrollToTop does a scrollTo which jsdom doesn't implement fully
@@ -28,6 +29,11 @@ describe("App Component - Routing", () => {
   it("renders the SignUp page at /signup", () => {
     renderAt("/signup");
     expect(screen.getByText("SignUp Page")).toBeInTheDocument();
+  });
+
+  it("renders the GuestSignIn page at /guest", () => {
+    renderAt("/guest");
+    expect(screen.getByText("GuestSignIn Page")).toBeInTheDocument();
   });
 
   it("renders the NotFound page for unknown routes", () => {

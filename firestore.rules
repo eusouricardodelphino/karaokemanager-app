@@ -119,8 +119,9 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.keys().hasAll([
              'name', 'ownerId', 'createdAt',
-             'trialStartedAt', 'trialDays', 'subscription'
+             'trialStartedAt', 'trialDays', 'subscription', 'active'
            ])
+        && request.resource.data.active == true
         && request.resource.data.subscription.status == 'trial'
         && request.resource.data.trialDays == 30;
 

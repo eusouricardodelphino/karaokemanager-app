@@ -1,85 +1,78 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
-import UserSignUp from "../pages/UserSignUp";
-import * as authFunctions from "firebase/auth";
-import * as firestoreFunctions from "firebase/firestore";
+import SignUp from "../pages/SignUp";
 
 vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-vi.mock("firebase/auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("firebase/auth")>();
-  return { ...actual, signInWithPopup: vi.fn() };
-});
+vi.mock("firebase/auth", () => ({
+  createUserWithEmailAndPassword: vi.fn(),
+}));
 
-vi.mock("firebase/firestore", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("firebase/firestore")>();
-  return { ...actual, setDoc: vi.fn(), getDoc: vi.fn(), doc: vi.fn() };
-});
+vi.mock("firebase/firestore", () => ({
+  setDoc: vi.fn(),
+  doc: vi.fn(() => ({ id: "mock-doc-ref" })),
+  addDoc: vi.fn(),
+  collection: vi.fn(),
+  serverTimestamp: vi.fn(),
+  getDoc: vi.fn(),
+}));
 
 vi.mock("@/firebase", () => ({
   auth: {},
-  googleProvider: {},
   db: {},
 }));
 
 const renderWithRouter = (ui: React.ReactElement) =>
   render(<BrowserRouter>{ui}</BrowserRouter>);
 
-describe("UserSignUp Component", () => {
+describe("Singer SignUp (tab Sou cantor)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("renders the user sign up page correctly", () => {
-    renderWithRouter(<UserSignUp />);
-
-    expect(screen.getByRole("heading", { name: /Cadastro de Cantor/i })).toBeInTheDocument();
-    expect(screen.getByText(/Crie sua conta para entrar na fila do karaoke/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cadastrar com Google/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Entrar/i })).toHaveAttribute("href", "/users/login");
+  it("renders singer form by default", () => {
+    renderWithRouter(<SignUp />);
+    expect(screen.getByPlaceholderText(/Nome do cantor/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
   });
 
-  it("does NOT call setDoc when user document already exists", async () => {
-    const mockUser = { uid: "existing-uid", email: "existing@example.com", displayName: "Existing User" };
-    vi.mocked(authFunctions.signInWithPopup).mockResolvedValueOnce({ user: mockUser } as any);
-    vi.mocked(firestoreFunctions.doc).mockReturnValue("fake-doc-ref" as any);
-    vi.mocked(firestoreFunctions.getDoc).mockResolvedValueOnce({ exists: () => true } as any);
+  it("submit button is disabled when singer form is empty", () => {
+    renderWithRouter(<SignUp />);
+    expect(screen.getByTestId("submit-button")).toBeDisabled();
+  });
 
-    renderWithRouter(<UserSignUp />);
-    fireEvent.click(screen.getByRole("button", { name: /Cadastrar com Google/i }));
+  it("submit button enables when singer form is filled", async () => {
+    renderWithRouter(<SignUp />);
+    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
 
     await waitFor(() => {
-      expect(firestoreFunctions.getDoc).toHaveBeenCalled();
+      expect(screen.getByTestId("submit-button")).not.toBeDisabled();
     });
-    expect(firestoreFunctions.setDoc).not.toHaveBeenCalled();
   });
 
-  it("handles google sign up successfully", async () => {
-    const mockUser = { uid: "google-uid", email: "google@example.com", displayName: "Google User" };
-    vi.mocked(authFunctions.signInWithPopup).mockResolvedValueOnce({
-      user: mockUser,
+  it("calls createUserWithEmailAndPassword on singer form submit", async () => {
+    const { createUserWithEmailAndPassword } = await import("firebase/auth");
+    const { setDoc } = await import("firebase/firestore");
+    vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
+      user: { uid: "singer-uid", email: "joao@email.com", displayName: null },
     } as any);
-    vi.mocked(firestoreFunctions.doc).mockReturnValue("fake-doc-ref" as any);
-    vi.mocked(firestoreFunctions.getDoc).mockResolvedValueOnce({ exists: () => false } as any);
-    vi.mocked(firestoreFunctions.setDoc).mockResolvedValueOnce(undefined);
+    vi.mocked(setDoc).mockResolvedValue(undefined);
 
-    renderWithRouter(<UserSignUp />);
-
-    fireEvent.click(screen.getByRole("button", { name: /Cadastrar com Google/i }));
+    renderWithRouter(<SignUp />);
+    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
+    fireEvent.click(screen.getByTestId("submit-button"));
 
     await waitFor(() => {
-      expect(authFunctions.signInWithPopup).toHaveBeenCalled();
-    });
-    await waitFor(() => {
-      expect(firestoreFunctions.setDoc).toHaveBeenCalledWith(
-        "fake-doc-ref",
-        expect.objectContaining({
-          id: "google-uid",
-          email: "google@example.com",
-          name: "Google User",
-          role: "singer",
-        })
+      expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
+        expect.anything(),
+        "joao@email.com",
+        "senha123"
       );
     });
   });

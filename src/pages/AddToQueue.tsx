@@ -13,6 +13,7 @@ import {
   addSingerToQueue,
   findSingerInQueue,
 } from "@/services/queueService";
+import { getActiveSession } from "@/services/sessionService";
 import type { QueueItem } from "@/types/queue";
 
 const AddToQueue = () => {
@@ -34,6 +35,16 @@ const AddToQueue = () => {
   dateToday = dateToday.replace(/\//g, ".");
 
   const addToQueue = async () => {
+    const session = await getActiveSession(db, restaurantId);
+    if (!session || session.status !== "open") {
+      toast({
+        title: "Fila fechada",
+        description: "A sessão ainda não foi aberta. Aguarde o início do show.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!effectiveName.trim() || !song.trim()) {
       toast({
         title: "Campos obrigatórios",

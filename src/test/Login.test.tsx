@@ -13,13 +13,17 @@ vi.mock("firebase/auth", async (importOriginal) => {
   return {
     ...actual,
     signInWithEmailAndPassword: vi.fn(),
-    signInWithPopup: vi.fn(),
   };
 });
 
 vi.mock("@/firebase", () => ({
   auth: {},
-  googleProvider: {},
+  db: {},
+}));
+
+vi.mock("firebase/firestore", () => ({
+  doc: vi.fn(),
+  getDoc: vi.fn(),
 }));
 
 const renderWithRouter = (ui: React.ReactElement) =>
@@ -36,8 +40,8 @@ describe("Login Component", () => {
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Entrar$/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Continuar com Google/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Criar conta/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Continuar sem cadastro/i })).toBeInTheDocument();
   });
 
   it("shows loading state when submitting email login", async () => {
@@ -94,32 +98,9 @@ describe("Login Component", () => {
     });
   });
 
-  it("handles google login successfully", async () => {
-    const mockUser = { uid: "google-login-uid" };
-    vi.mocked(authFunctions.signInWithPopup).mockResolvedValueOnce({
-      user: mockUser,
-    } as any);
-
+  it("link 'Continuar sem cadastro' aponta para /guest", () => {
     renderWithRouter(<Login />);
-
-    fireEvent.click(screen.getByRole("button", { name: /Continuar com Google/i }));
-
-    await waitFor(() => {
-      expect(authFunctions.signInWithPopup).toHaveBeenCalled();
-    });
-  });
-
-  it("shows error when google login fails", async () => {
-    vi.mocked(authFunctions.signInWithPopup).mockRejectedValueOnce(
-      new Error("popup-closed")
-    );
-
-    renderWithRouter(<Login />);
-    fireEvent.click(screen.getByRole("button", { name: /Continuar com Google/i }));
-
-    await waitFor(() => {
-      expect(authFunctions.signInWithPopup).toHaveBeenCalled();
-      expect(screen.getByRole("button", { name: /Continuar com Google/i })).not.toBeDisabled();
-    });
+    const link = screen.getByRole("link", { name: /Continuar sem cadastro/i });
+    expect(link).toHaveAttribute("href", "/guest");
   });
 });

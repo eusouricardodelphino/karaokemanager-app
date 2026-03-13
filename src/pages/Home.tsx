@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Music, Users, SkipForward, Search } from "lucide-react";
+import { Music, Users, SkipForward, Search, Power } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
 import { useParams } from "react-router-dom";
@@ -16,13 +16,21 @@ import {
   markSingerAsAlreadySangById,
   removeSingerFromStage,
 } from "@/services/queueService";
+import {
+  subscribeToActiveSession,
+  openSession,
+  closeSession,
+} from "@/services/sessionService";
+
 import type { QueueItem } from "@/types/queue";
+import type { SessionSnapshot } from "@/types/session";
 
 const Home = () => {
   const { db } = useFirebase();
   const { user } = useCurrentUser();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [currentSinger, setCurrentSinger] = useState<QueueItem | null>(null);
+  const [activeSession, setActiveSession] = useState<SessionSnapshot | null>(null);
   const { restaurantId } = useParams();
 
   useEffect(() => {
@@ -32,11 +40,40 @@ const Home = () => {
       restaurantId,
       setCurrentSinger
     );
+    const sessionUnsubscribe = subscribeToActiveSession(
+      db,
+      restaurantId,
+      setActiveSession
+    );
     return () => {
       if (typeof queueUnsubscribe === "function") queueUnsubscribe();
       if (typeof stageUnsubscribe === "function") stageUnsubscribe();
+      if (typeof sessionUnsubscribe === "function") sessionUnsubscribe();
     };
   }, [db, restaurantId]);
+
+  const handleOpenSession = async () => {
+    if (!user || !restaurantId) return;
+    try {
+      await openSession(db, restaurantId, user.id);
+      toast({ title: "Sessão aberta!", description: "A sessão foi iniciada com sucesso." });
+    } catch (err) {
+      console.error("[openSession] erro:", err);
+      toast({ title: "Erro ao abrir sessão", variant: "destructive" });
+    }
+  };
+
+  const handleCloseSession = async () => {
+    if (!user || !restaurantId || !activeSession) return;
+    try {
+      await removeSingerFromStage(db, restaurantId);
+      await closeSession(db, restaurantId, activeSession.id, user.id);
+      toast({ title: "Sessão encerrada!", description: "A sessão foi encerrada com sucesso." });
+    } catch (err) {
+      console.error("[closeSession] erro:", err);
+      toast({ title: "Erro ao encerrar sessão", variant: "destructive" });
+    }
+  };
 
   const nextSinger = async () => {
     if (queue.length === 0) return;
@@ -75,8 +112,53 @@ const Home = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="container mx-auto px-4 pt-0 pb-24 md:pt-8 md:pb-8">
+        <div className="max-w-6xl mx-auto space-y-4 md:space-y-8">
+          {/* Session Control - owner only */}
+          {user && isOwner(user) && (
+            <Card className="border border-border shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Power className="h-4 w-4" />
+                  Sessão de hoje
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {activeSession ? (
+                      <span className="text-green-600 font-medium">Aberta</span>
+                    ) : (
+                      <span className="text-muted-foreground">Fechada</span>
+                    )}
+                  </span>
+                  {activeSession ? (
+                    <Button
+                      onClick={handleCloseSession}
+                      variant="destructive"
+                      size="sm"
+                    >
+                      Encerrar Sessão
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleOpenSession}
+                      variant="default"
+                      size="sm"
+                    >
+                      Abrir Sessão
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+            </Card>
+          )}
+
+          {/* Closed session banner — visible to all users */}
+          {!activeSession && (
+            <div className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground text-center">
+              A fila ainda não foi aberta. Aguarde o responsável iniciar a sessão.
+            </div>
+          )}
+
           {/* Current Singer */}
           <Card className="bg-gradient-stage border-0 shadow-2xl animate-pulse-glow">
             <CardHeader className="text-center pb-4">
