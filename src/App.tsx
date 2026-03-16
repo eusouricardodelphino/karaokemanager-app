@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import GuestSignIn from "./pages/GuestSignIn";
+import StoreList from "./pages/StoreList";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
                 <Route path="/:storeId/settings" element={<Settings />} />
               </Route>
             </Route>
+            <Route path="/stores" element={<StoreList />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/guest" element={<GuestSignIn />} />

@@ -1,5 +1,4 @@
 import {
-  collection,
   doc,
   getDoc,
   onSnapshot,
@@ -9,10 +8,9 @@ import {
   Firestore,
 } from "firebase/firestore";
 import type { Session, SessionSnapshot } from "@/types/session";
+import { ROOM_ID } from "@/constants";
 
 type Unsubscribe = () => void;
-
-const ROOM_ID = "main";
 
 function sessionDoc(db: Firestore, storeId: string, dateId: string) {
   return doc(db, `stores/${storeId}/rooms/${ROOM_ID}/sessions/${dateId}`);

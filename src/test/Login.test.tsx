@@ -1,8 +1,9 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, MemoryRouter, Route, Routes } from "react-router-dom";
 import Login from "../pages/Login";
 import * as authFunctions from "firebase/auth";
+import * as firestoreFunctions from "firebase/firestore";
 
 vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
@@ -102,5 +103,70 @@ describe("Login Component", () => {
     renderWithRouter(<Login />);
     const link = screen.getByRole("link", { name: /Continuar sem cadastro/i });
     expect(link).toHaveAttribute("href", "/guest");
+  });
+});
+
+describe("Login — redirect after sign in", () => {
+  const renderForNavigation = (initialPath = "/login") =>
+    render(
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/stores" element={<div>Store List</div>} />
+          <Route path="/:storeId" element={<div>Owner Store</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+  const fillAndSubmit = () => {
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "user@test.com" } });
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Entrar$/i }));
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(authFunctions.signInWithEmailAndPassword).mockResolvedValue({
+      user: { uid: "uid-1" },
+    } as any);
+  });
+
+  it("redireciona singer (sem storeId) para /stores quando não há redirectTo", async () => {
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValue({
+      data: () => ({ role: "singer" }),
+    } as any);
+
+    renderForNavigation("/login");
+    fillAndSubmit();
+
+    await waitFor(() => {
+      expect(screen.getByText("Store List")).toBeInTheDocument();
+    });
+  });
+
+  it("redireciona owner (com storeId) para a própria loja quando não há redirectTo", async () => {
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValue({
+      data: () => ({ role: "owner", storeId: "my-store" }),
+    } as any);
+
+    renderForNavigation("/login");
+    fillAndSubmit();
+
+    await waitFor(() => {
+      expect(screen.getByText("Owner Store")).toBeInTheDocument();
+    });
+  });
+
+  it("respeita o redirectTo independente do role", async () => {
+    vi.mocked(firestoreFunctions.getDoc).mockResolvedValue({
+      data: () => ({ role: "singer" }),
+    } as any);
+
+    renderForNavigation("/login?redirect=/alguma-loja");
+    fillAndSubmit();
+
+    await waitFor(() => {
+      expect(screen.getByText("Owner Store")).toBeInTheDocument();
+    });
   });
 });

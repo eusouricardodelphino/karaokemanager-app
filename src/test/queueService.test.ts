@@ -229,12 +229,10 @@ describe("queueService", () => {
 
   // ─── findSingerInQueue ──────────────────────────────────────────────
 
-  it("findSingerInQueue: calls getDocs with fallback query when storeId is undefined", async () => {
-    const mockSnapshot = { empty: true, docs: [] };
-    vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce(mockSnapshot as any);
-
-    await findSingerInQueue(mockDb, undefined, "test");
-    expect(firestoreFunctions.getDocs).toHaveBeenCalled();
+  it("findSingerInQueue: returns null without calling getDocs when storeId is undefined", async () => {
+    const result = await findSingerInQueue(mockDb, undefined, "test");
+    expect(result).toBeNull();
+    expect(firestoreFunctions.getDocs).not.toHaveBeenCalled();
   });
 
   it("findSingerInQueue: calls getDocs with proper query when storeId exists", async () => {

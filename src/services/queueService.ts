@@ -16,10 +16,9 @@ import {
   Firestore,
 } from "firebase/firestore";
 import type { QueueItem } from "@/types/queue";
+import { ROOM_ID } from "@/constants";
 
 type Unsubscribe = () => void;
-
-const ROOM_ID = "main";
 
 function queueCol(db: Firestore, storeId: string) {
   return collection(db, `stores/${storeId}/rooms/${ROOM_ID}/queue`);
@@ -137,11 +136,8 @@ export const findSingerInQueue = async (
   db: Firestore,
   storeId: string | undefined,
   nameSearch: string
-): Promise<QuerySnapshot<DocumentData>> => {
-  if (!storeId) {
-    const q = query(collection(db, "_empty"), where("x", "==", "__none__"));
-    return getDocs(q);
-  }
+): Promise<QuerySnapshot<DocumentData> | null> => {
+  if (!storeId) return null;
 
   return getDocs(
     query(

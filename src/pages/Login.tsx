@@ -23,7 +23,7 @@ const Login = () => {
     if (redirectTo) return redirectTo;
     const snap = await getDoc(doc(db, "users", uid));
     const storeId = snap.data()?.storeId as string | undefined;
-    return storeId ? `/${storeId}` : "/";
+    return storeId ? `/${storeId}` : "/stores";
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {

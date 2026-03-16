@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/firebase";
-import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, getDoc } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,13 +27,6 @@ const SignUp = () => {
 
   const redirectTo = searchParams.get("redirect");
 
-  const getDestination = async (uid: string): Promise<string> => {
-    if (redirectTo) return redirectTo;
-    const snap = await getDoc(doc(db, "users", uid));
-    const storeId = snap.data()?.storeId as string | undefined;
-    return storeId ? `/${storeId}` : "/";
-  };
-
   const handleSingerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -48,14 +41,13 @@ const SignUp = () => {
         role: "singer",
         createdAt: new Date().toISOString(),
       };
-      console.log(userData)
       await setDoc(doc(db, "users", user.uid), userData);
 
       toast({
         title: "Cadastro realizado!",
         description: "Bem-vindo! Agora você pode entrar na fila.",
       });
-      navigate(redirectTo ? redirectTo : `/${user.uid}`, { replace: true });
+      navigate(redirectTo ?? "/stores", { replace: true });
     } catch (error: unknown) {
       toast({
         title: "Erro ao cadastrar",

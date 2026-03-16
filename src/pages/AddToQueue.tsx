@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,7 @@ import {
   findSingerInQueue,
 } from "@/services/queueService";
 import { getActiveSession } from "@/services/sessionService";
-import { doc, getDoc } from "firebase/firestore";
-import { db as firebaseDb } from "@/firebase";
+import { useStoreExists } from "@/hooks/useStoreExists";
 import NotFound from "@/pages/NotFound";
 import type { QueueItem } from "@/types/queue";
 
@@ -25,19 +24,9 @@ const AddToQueue = () => {
   const [song, setSong] = useState("");
   const [band, setBand] = useState("");
   const [link, setLink] = useState("");
-  const [storeExists, setStoreExists] = useState<boolean | null>(null);
   const { storeId } = useParams();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!storeId) {
-      setStoreExists(false);
-      return;
-    }
-    getDoc(doc(firebaseDb, "stores", storeId))
-      .then((snap) => setStoreExists(snap.exists()))
-      .catch(() => setStoreExists(true));
-  }, [storeId]);
+  const storeExists = useStoreExists(storeId);
 
   const [name, setName] = useState("");
   const canEditName = user?.role !== "singer";
@@ -98,7 +87,7 @@ const AddToQueue = () => {
       newItem.nameSearch
     );
 
-    if (!alreadyInQueue.empty) {
+    if (alreadyInQueue && !alreadyInQueue.empty) {
       toast({
         title: "Você já está na fila",
         description: "Espere sua vez! Após, é possível entrar novamente na fila.",

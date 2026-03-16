@@ -9,7 +9,7 @@ export interface AppUser {
   /** @deprecated Use role === 'owner'. Mantido por compatibilidade com documentos existentes. */
   isAdmin?: boolean;
   /** Role explícita do usuário. 'owner' para donos de loja, 'staff' para funcionários, 'singer' para cantores. */
-  role?: "owner" | "staff" | "singer";
+  role: "owner" | "staff" | "singer";
   /** ID da loja vinculada ao usuário no cadastro */
   storeId?: string;
   /** true para usuários autenticados anonimamente */

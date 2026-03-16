@@ -32,8 +32,17 @@ vi.mock("@/firebase", () => ({
   db: {},
 }));
 
-const renderAddToQueue = () =>
-  render(
+vi.mock("firebase/firestore", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("firebase/firestore")>();
+  return {
+    ...actual,
+    doc: vi.fn(() => "mock-store-ref"),
+    getDoc: vi.fn().mockResolvedValue({ exists: () => true }),
+  };
+});
+
+const renderAddToQueue = async () => {
+  const result = render(
     <MemoryRouter initialEntries={["/restaurant-1/add"]}>
       <Routes>
         <Route path="/:storeId/add" element={<AddToQueue />} />
@@ -41,6 +50,10 @@ const renderAddToQueue = () =>
       </Routes>
     </MemoryRouter>
   );
+  // Wait for storeExists check to resolve before interacting with the form
+  await screen.findByRole("button", { name: /Adicionar à Fila/i });
+  return result;
+};
 
 const openSessionSnapshot = {
   id: "2026-03-13", date: "2026-03-13", status: "open" as const,
@@ -61,8 +74,8 @@ describe("AddToQueue Component", () => {
     vi.mocked(sessionService.getActiveSession).mockResolvedValue(openSessionSnapshot);
   });
 
-  it("renders the form fields correctly", () => {
-    renderAddToQueue();
+  it("renders the form fields correctly", async () => {
+    await renderAddToQueue();
     expect(document.getElementById("name")).toBeInTheDocument();
     expect(document.getElementById("song")).toBeInTheDocument();
     expect(document.getElementById("band")).toBeInTheDocument();
@@ -70,55 +83,55 @@ describe("AddToQueue Component", () => {
     expect(screen.getByRole("button", { name: /Adicionar à Fila/i })).toBeInTheDocument();
   });
 
-  it("name field is pre-filled with Google user name and is read-only for singer", () => {
-    renderAddToQueue();
+  it("name field is pre-filled with Google user name and is read-only for singer", async () => {
+    await renderAddToQueue();
     const nameInput = document.getElementById("name") as HTMLInputElement;
     expect(nameInput.value).toBe("Carlos Souza");
     expect(nameInput).toHaveAttribute("readonly");
   });
 
-  it("name field is editable for owner role", () => {
+  it("name field is editable for owner role", async () => {
     vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValue({
       user: { id: "uid-2", name: "Owner User", role: "owner" },
       isLoading: false,
       isAuthenticated: true,
       logout: vi.fn(),
     });
-    renderAddToQueue();
+    await renderAddToQueue();
     const nameInput = document.getElementById("name") as HTMLInputElement;
     expect(nameInput).not.toHaveAttribute("readonly");
     fireEvent.change(nameInput, { target: { value: "Custom Singer Name" } });
     expect(nameInput.value).toBe("Custom Singer Name");
   });
 
-  it("name field is editable for staff role", () => {
-    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValueOnce({
+  it("name field is editable for staff role", async () => {
+    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValue({
       user: { id: "uid-3", name: "Staff User", role: "staff" },
       isLoading: false,
       isAuthenticated: true,
       logout: vi.fn(),
     });
-    renderAddToQueue();
+    await renderAddToQueue();
     const nameInput = document.getElementById("name") as HTMLInputElement;
     expect(nameInput).not.toHaveAttribute("readonly");
   });
 
   it("does NOT submit when song is empty", async () => {
-    renderAddToQueue();
+    await renderAddToQueue();
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
     await waitFor(() => {
       expect(queueService.addSingerToQueue).not.toHaveBeenCalled();
     });
   });
 
-  it("name field is empty when singer has no name in profile", () => {
-    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValueOnce({
+  it("name field is empty when singer has no name in profile", async () => {
+    vi.mocked(useCurrentUserModule.useCurrentUser).mockReturnValue({
       user: { id: "uid-1", name: undefined, role: "singer" },
       isLoading: false,
       isAuthenticated: true,
       logout: vi.fn(),
     });
-    renderAddToQueue();
+    await renderAddToQueue();
     const nameInput = document.getElementById("name") as HTMLInputElement;
     expect(nameInput.value).toBe("");
   });
@@ -126,7 +139,7 @@ describe("AddToQueue Component", () => {
   it("prevents adding to queue when singer is already in queue", async () => {
     vi.mocked(queueService.findSingerInQueue).mockResolvedValueOnce({ empty: false } as any);
 
-    renderAddToQueue();
+    await renderAddToQueue();
 
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
 
@@ -142,7 +155,7 @@ describe("AddToQueue Component", () => {
     vi.mocked(queueService.findSingerInQueue).mockResolvedValueOnce({ empty: true } as any);
     vi.mocked(queueService.addSingerToQueue).mockResolvedValueOnce(undefined);
 
-    renderAddToQueue();
+    await renderAddToQueue();
 
     fireEvent.change(document.getElementById("song")!, { target: { value: "Bohemian Rhapsody" } });
 
@@ -181,7 +194,7 @@ describe("AddToQueue — Session Gate", () => {
   it("blocks submission and shows toast when there is no active session", async () => {
     vi.mocked(sessionService.getActiveSession).mockResolvedValueOnce(null);
 
-    renderAddToQueue();
+    await renderAddToQueue();
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
 
@@ -200,7 +213,7 @@ describe("AddToQueue — Session Gate", () => {
       openedAt: { toMillis: () => Date.now() } as any, openedBy: "uid-owner",
     });
 
-    renderAddToQueue();
+    await renderAddToQueue();
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
 
@@ -220,7 +233,7 @@ describe("AddToQueue — Session Gate", () => {
     vi.mocked(queueService.findSingerInQueue).mockResolvedValueOnce({ empty: true } as any);
     vi.mocked(queueService.addSingerToQueue).mockResolvedValueOnce(undefined);
 
-    renderAddToQueue();
+    await renderAddToQueue();
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
 
@@ -233,7 +246,7 @@ describe("AddToQueue — Session Gate", () => {
   it("calls getActiveSession with storeId from route params", async () => {
     vi.mocked(sessionService.getActiveSession).mockResolvedValueOnce(null);
 
-    renderAddToQueue();
+    await renderAddToQueue();
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
 
@@ -245,7 +258,7 @@ describe("AddToQueue — Session Gate", () => {
   it("toast shows the exact error message and description when no active session", async () => {
     vi.mocked(sessionService.getActiveSession).mockResolvedValueOnce(null);
 
-    renderAddToQueue();
+    await renderAddToQueue();
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
 
@@ -263,7 +276,7 @@ describe("AddToQueue — Session Gate", () => {
       new Error("permission-denied")
     );
 
-    renderAddToQueue();
+    await renderAddToQueue();
     fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
     fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
 
