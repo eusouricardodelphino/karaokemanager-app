@@ -36,6 +36,7 @@ const App = () => (
                 <Route path="/:storeId/settings" element={<Settings />} />
               </Route>
             </Route>
+            <Route path="/" element={<StoreList />} />
             <Route path="/stores" element={<StoreList />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
