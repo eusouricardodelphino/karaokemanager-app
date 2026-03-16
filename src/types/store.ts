@@ -14,8 +14,9 @@ export interface Store {
   /** Gerado pelo Firestore ao criar o documento */
   id?: string;
   name: string;
+  logoUrl?: string;
   address?: string;
-  phone?: string;
+  phones?: { ddd: string; number: string; whatsapp: boolean }[];
   cnpj?: string;
   /** UID do usuário superadmin dono desta loja */
   ownerId: string;

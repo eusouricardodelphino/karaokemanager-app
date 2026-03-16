@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">20% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/8</span>
+                <span class='fraction'>4/20</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">20% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>2/8</span>
+                <span class='fraction'>4/20</span>
             </div>
         
             
@@ -73,7 +73,31 @@
 <a name='L8'></a><a href='#L8'>8</a>
 <a name='L9'></a><a href='#L9'>9</a>
 <a name='L10'></a><a href='#L10'>10</a>
-<a name='L11'></a><a href='#L11'>11</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -83,8 +107,32 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { collection, getDocs, orderBy, query, Firestore } from "firebase/firestore";
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { collection, deleteField, doc, getDoc, getDocs, orderBy, query, updateDoc, Firestore } from "firebase/firestore";
 import type { Store } from "@/types/store";
+&nbsp;
+export const getStore = <span class="fstat-no" title="function not covered" >async (db: Firestore, storeId: string): Promise&lt;Store | null&gt; =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  const snap = await getDoc(doc(db, "stores", storeId));</span>
+<span class="cstat-no" title="statement not covered" >  if (!snap.exists()) return null;</span>
+<span class="cstat-no" title="statement not covered" >  return { id: snap.id, ...snap.data() } as Store;</span>
+<span class="cstat-no" title="statement not covered" >};</span>
+&nbsp;
+type StoreUpdate = Pick&lt;Store, "name" | "address" | "phones" | "cnpj"&gt;;
+&nbsp;
+export const updateStore = <span class="fstat-no" title="function not covered" >async (db: Firestore, storeId: string, data: StoreUpdate): Promise&lt;void&gt; =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  const payload: Record&lt;string, unknown&gt; = {};</span>
+<span class="cstat-no" title="statement not covered" >  for (const [key, val] of Object.entries(data)) {</span>
+<span class="cstat-no" title="statement not covered" >    payload[key] = val === undefined ? deleteField() : val;</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  await updateDoc(doc(db, "stores", storeId), payload);</span>
+<span class="cstat-no" title="statement not covered" >};</span>
 &nbsp;
 export const getStores = <span class="fstat-no" title="function not covered" >async (db: Firestore): Promise&lt;Store[]&gt; =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  const q = query(collection(db, "stores"), orderBy("name", "asc"));</span>
@@ -100,7 +148,7 @@ export const getStores = <span class="fstat-no" title="function not covered" >as
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-16T17:31:11.993Z
+                at 2026-03-16T18:24:56.295Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

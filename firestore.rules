@@ -108,9 +108,9 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────
     match /stores/{storeId} {
 
-      // Leitura pública (autenticado): necessário para storeIsOperational() nas regras da fila.
-      // Escrita restrita a owner/staff/superadmin.
-      allow read: if isAuth();
+      // Leitura pública: necessário para StoreList (sem login) e para
+      // storeIsOperational() nas regras da fila.
+      allow read: if true;
 
       // Criação: role 'owner', vincula ao próprio uid,
       // trialStartedAt deve ser serverTimestamp (não editável)
@@ -130,7 +130,7 @@ service cloud.firestore {
       allow update: if isAuth() && (
         isSuperAdmin()
         || (
-          isStoreOwner(storeId)
+          resource.data.ownerId == request.auth.uid
           && !('ownerId'      in request.resource.data.diff(resource.data).affectedKeys())
           && !('subscription' in request.resource.data.diff(resource.data).affectedKeys())
           && !('trialStartedAt' in request.resource.data.diff(resource.data).affectedKeys())
