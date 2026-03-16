@@ -13,7 +13,7 @@ const renderNav = (path = "/rest-123") =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/:restaurantId/*" element={<Navigation />} />
+        <Route path="/:storeId/*" element={<Navigation />} />
         <Route path="/login" element={<Navigation />} />
       </Routes>
     </MemoryRouter>

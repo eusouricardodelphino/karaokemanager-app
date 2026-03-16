@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,9 @@ import {
   findSingerInQueue,
 } from "@/services/queueService";
 import { getActiveSession } from "@/services/sessionService";
+import { doc, getDoc } from "firebase/firestore";
+import { db as firebaseDb } from "@/firebase";
+import NotFound from "@/pages/NotFound";
 import type { QueueItem } from "@/types/queue";
 
 const AddToQueue = () => {
@@ -22,8 +25,19 @@ const AddToQueue = () => {
   const [song, setSong] = useState("");
   const [band, setBand] = useState("");
   const [link, setLink] = useState("");
-  const { restaurantId } = useParams();
+  const [storeExists, setStoreExists] = useState<boolean | null>(null);
+  const { storeId } = useParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!storeId) {
+      setStoreExists(false);
+      return;
+    }
+    getDoc(doc(firebaseDb, "stores", storeId))
+      .then((snap) => setStoreExists(snap.exists()))
+      .catch(() => setStoreExists(true));
+  }, [storeId]);
 
   const [name, setName] = useState("");
   const canEditName = user?.role !== "singer";
@@ -35,7 +49,18 @@ const AddToQueue = () => {
   dateToday = dateToday.replace(/\//g, ".");
 
   const addToQueue = async () => {
-    const session = await getActiveSession(db, restaurantId);
+    let session = null;
+    try {
+      session = await getActiveSession(db, storeId);
+    } catch {
+      toast({
+        title: "Fila fechada",
+        description: "A sessão ainda não foi aberta. Aguarde o início do show.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!session || session.status !== "open") {
       toast({
         title: "Fila fechada",
@@ -69,7 +94,7 @@ const AddToQueue = () => {
 
     const alreadyInQueue = await findSingerInQueue(
       db,
-      restaurantId,
+      storeId,
       newItem.nameSearch
     );
 
@@ -82,7 +107,7 @@ const AddToQueue = () => {
       return;
     }
 
-    await addSingerToQueue(db, restaurantId!, newItem);
+    await addSingerToQueue(db, storeId!, newItem);
 
     setSong("");
     setBand("");
@@ -93,8 +118,11 @@ const AddToQueue = () => {
       description: `${newItem.name} foi adicionado para cantar "${newItem.song}"`,
     });
 
-    navigate(`/${restaurantId}`);
+    navigate(`/${storeId}`);
   };
+
+  if (storeExists === null) return null;
+  if (!storeExists) return <NotFound />;
 
   return (
     <div className="min-h-screen bg-background">

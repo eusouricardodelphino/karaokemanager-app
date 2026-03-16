@@ -50,7 +50,7 @@ const renderHome = () =>
   render(
     <MemoryRouter initialEntries={["/restaurant-1"]}>
       <Routes>
-        <Route path="/:restaurantId" element={<Home />} />
+        <Route path="/:storeId" element={<Home />} />
       </Routes>
     </MemoryRouter>
   );

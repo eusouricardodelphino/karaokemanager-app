@@ -36,8 +36,8 @@ const renderAddToQueue = () =>
   render(
     <MemoryRouter initialEntries={["/restaurant-1/add"]}>
       <Routes>
-        <Route path="/:restaurantId/add" element={<AddToQueue />} />
-        <Route path="/:restaurantId" element={<div>Home</div>} />
+        <Route path="/:storeId/add" element={<AddToQueue />} />
+        <Route path="/:storeId" element={<div>Home</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -239,6 +239,42 @@ describe("AddToQueue — Session Gate", () => {
 
     await waitFor(() => {
       expect(sessionService.getActiveSession).toHaveBeenCalledWith(expect.anything(), "restaurant-1");
+    });
+  });
+
+  it("toast shows the exact error message and description when no active session", async () => {
+    vi.mocked(sessionService.getActiveSession).mockResolvedValueOnce(null);
+
+    renderAddToQueue();
+    fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
+
+    await waitFor(() => {
+      expect(toast).toHaveBeenCalledWith({
+        title: "Fila fechada",
+        description: "A sessão ainda não foi aberta. Aguarde o início do show.",
+        variant: "destructive",
+      });
+    });
+  });
+
+  it("shows 'Fila fechada' toast when getActiveSession throws (e.g. permission-denied)", async () => {
+    vi.mocked(sessionService.getActiveSession).mockRejectedValueOnce(
+      new Error("permission-denied")
+    );
+
+    renderAddToQueue();
+    fireEvent.change(document.getElementById("song")!, { target: { value: "Yesterday" } });
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar à Fila/i }));
+
+    await waitFor(() => {
+      expect(toast).toHaveBeenCalledWith({
+        title: "Fila fechada",
+        description: "A sessão ainda não foi aberta. Aguarde o início do show.",
+        variant: "destructive",
+      });
+      expect(queueService.addSingerToQueue).not.toHaveBeenCalled();
+      expect(queueService.findSingerInQueue).not.toHaveBeenCalled();
     });
   });
 });

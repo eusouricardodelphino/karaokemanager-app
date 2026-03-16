@@ -31,18 +31,18 @@ const Home = () => {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [currentSinger, setCurrentSinger] = useState<QueueItem | null>(null);
   const [activeSession, setActiveSession] = useState<SessionSnapshot | null>(null);
-  const { restaurantId } = useParams();
+  const { storeId } = useParams();
 
   useEffect(() => {
-    const queueUnsubscribe = subscribeToQueue(db, restaurantId, setQueue);
+    const queueUnsubscribe = subscribeToQueue(db, storeId, setQueue);
     const stageUnsubscribe = subscribeToOnStageSinger(
       db,
-      restaurantId,
+      storeId,
       setCurrentSinger
     );
     const sessionUnsubscribe = subscribeToActiveSession(
       db,
-      restaurantId,
+      storeId,
       setActiveSession
     );
     return () => {
@@ -50,12 +50,12 @@ const Home = () => {
       if (typeof stageUnsubscribe === "function") stageUnsubscribe();
       if (typeof sessionUnsubscribe === "function") sessionUnsubscribe();
     };
-  }, [db, restaurantId]);
+  }, [db, storeId]);
 
   const handleOpenSession = async () => {
-    if (!user || !restaurantId) return;
+    if (!user || !storeId) return;
     try {
-      await openSession(db, restaurantId, user.id);
+      await openSession(db, storeId, user.id);
       toast({ title: "Sessão aberta!", description: "A sessão foi iniciada com sucesso." });
     } catch (err) {
       console.error("[openSession] erro:", err);
@@ -64,10 +64,10 @@ const Home = () => {
   };
 
   const handleCloseSession = async () => {
-    if (!user || !restaurantId || !activeSession) return;
+    if (!user || !storeId || !activeSession) return;
     try {
-      await removeSingerFromStage(db, restaurantId);
-      await closeSession(db, restaurantId, activeSession.id, user.id);
+      await removeSingerFromStage(db, storeId);
+      await closeSession(db, storeId, activeSession.id, user.id);
       toast({ title: "Sessão encerrada!", description: "A sessão foi encerrada com sucesso." });
     } catch (err) {
       console.error("[closeSession] erro:", err);
@@ -78,7 +78,7 @@ const Home = () => {
   const nextSinger = async () => {
     if (queue.length === 0) return;
 
-    if (await isStageEngaged(db, restaurantId)) {
+    if (await isStageEngaged(db, storeId)) {
       toast({
         title: "Palco ocupado",
         description: `Aguarde o cantor atual finalizar sua performance.`,
@@ -88,8 +88,8 @@ const Home = () => {
     }
 
     const next = queue[0];
-    await putSingerOnStage(db, restaurantId!, next);
-    if (next.id) await markSingerAsAlreadySangById(db, restaurantId!, next.id);
+    await putSingerOnStage(db, storeId!, next);
+    if (next.id) await markSingerAsAlreadySangById(db, storeId!, next.id);
 
     toast({
       title: "Próximo no palco!",
@@ -104,7 +104,7 @@ const Home = () => {
       title: "Performance finalizada!",
       description: `Obrigado ${currentSinger.name}! 👏`,
     });
-    await removeSingerFromStage(db, restaurantId!);
+    await removeSingerFromStage(db, storeId!);
   };
 
 
@@ -152,8 +152,8 @@ const Home = () => {
             </Card>
           )}
 
-          {/* Closed session banner — visible to logged-in users only */}
-          {user && !activeSession && (
+          {/* Closed session banner */}
+          {!activeSession && (
             <div className={`rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground text-center${!isOwner(user) ? " mt-4 md:mt-0" : ""}`}>
               A fila ainda não foi aberta. Aguarde o início do show.
             </div>

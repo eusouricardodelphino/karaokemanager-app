@@ -27,12 +27,12 @@ const App = () => (
           <ScrollToTop />
           <Routes>
             <Route element={<OwnerLayout />}>
-              <Route path="/:restaurantId" element={<Home />} />
+              <Route path="/:storeId" element={<Home />} />
             </Route>
             <Route element={<ProtectedRoute />}>
-              <Route path="/:restaurantId/add" element={<AddToQueue />} />
+              <Route path="/:storeId/add" element={<AddToQueue />} />
               <Route element={<OwnerLayout />}>
-                <Route path="/:restaurantId/settings" element={<Settings />} />
+                <Route path="/:storeId/settings" element={<Settings />} />
               </Route>
             </Route>
             <Route path="/login" element={<Login />} />

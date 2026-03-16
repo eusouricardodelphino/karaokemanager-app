@@ -12,17 +12,17 @@ interface NavItem {
 }
 
 const Navigation = () => {
-  const { restaurantId } = useParams();
+  const { storeId } = useParams();
   const { isAuthenticated, logout } = useCurrentUser();
 
   const navItems: NavItem[] = [
-    { path: `/${restaurantId}`, icon: Home, label: "Home" },
-    { path: `/${restaurantId}/add`, icon: Plus, label: "Cantar" },
-    { path: `/${restaurantId}/settings`, icon: Settings, label: "Configurações" },
+    { path: `/${storeId}`, icon: Home, label: "Home" },
+    { path: `/${storeId}/add`, icon: Plus, label: "Cantar" },
+    { path: `/${storeId}/settings`, icon: Settings, label: "Configurações" },
   ];
 
   if (!isAuthenticated) {
-    navItems.push({ path: "/login?redirect=/" + restaurantId, icon: LogIn, label: "Entrar" });
+    navItems.push({ path: "/login?redirect=/" + storeId, icon: LogIn, label: "Entrar" });
   } else {
     navItems.push({ path: "#", icon: LogOut, label: "Sair", onClick: logout });
   }
