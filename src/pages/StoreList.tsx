@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Music, MapPin, Phone } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { MapPin, Phone, LogIn, LogOut, Settings } from "lucide-react";
 import { useFirebase } from "@/hooks/firebaseContext";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getStores } from "@/services/storeService";
+import { formatPhone } from "@/lib/utils";
+import { isOwner } from "@/types/user";
 import type { Store } from "@/types/store";
 
 const WhatsAppIcon = () => (
@@ -36,6 +39,8 @@ const StoreLogo = ({ store }: { store: Store }) => {
 
 const StoreList = () => {
   const { db } = useFirebase();
+  const { isAuthenticated, user, logout } = useCurrentUser();
+  const navigate = useNavigate();
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,17 +52,55 @@ const StoreList = () => {
   }, [db]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500 flex flex-col items-center p-4 pt-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
-            <Music className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">Karaoke Manager</h1>
-          <p className="text-white/80 mt-2">Escolha uma loja para entrar na fila</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500 flex flex-col items-center">
+      {/* Header */}
+      <header className="w-full flex items-center justify-end px-5 py-3">
+        <div className="flex items-center gap-2">
+          {isAuthenticated ? (
+            <>
+              {isOwner(user) && user?.storeId && (
+                <button
+                  onClick={() => navigate(`/${user.storeId}/settings`)}
+                  className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden sm:inline">Configurações</span>
+                </button>
+              )}
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sair</span>
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center gap-1.5 text-white text-sm px-4 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors font-medium"
+            >
+              <LogIn className="w-4 h-4" />
+              Entrar
+            </Link>
+          )}
         </div>
+      </header>
 
+      <div className="w-full max-w-md p-4 pt-6">
         <div className="bg-card/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+
+          <div className="text-center pt-8 pb-4 px-4">
+            <div className="inline-flex items-center gap-2 mb-2">
+              <span className="text-4xl">🎤</span>
+              <span className="text-3xl font-bold">
+                Karaoke<span className="bg-gradient-primary bg-clip-text text-transparent">Manager</span>
+              </span>
+            </div>
+            <p className="text-muted-foreground text-sm">Escolha uma loja para entrar na fila</p>
+          </div>
+
+          <div className="border-t border-border">
           {loading ? (
             <div className="p-8 text-center text-muted-foreground" data-testid="loading">
               Carregando lojas...
@@ -101,13 +144,13 @@ const StoreList = () => {
                                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-green-500 transition-colors"
                               >
                                 <Phone className="w-3 h-3 flex-shrink-0" />
-                                ({p.ddd}) {p.number}
+                                ({p.ddd}) {formatPhone(p.number)}
                                 <WhatsAppIcon />
                               </a>
                             ) : (
                               <span key={i} className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Phone className="w-3 h-3 flex-shrink-0" />
-                                ({p.ddd}) {p.number}
+                                ({p.ddd}) {formatPhone(p.number)}
                               </span>
                             )
                           ))}
@@ -119,6 +162,7 @@ const StoreList = () => {
               ))}
             </ul>
           )}
+          </div>
         </div>
       </div>
     </div>

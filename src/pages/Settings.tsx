@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirebase } from "@/hooks/firebaseContext";
 import { isOwner } from "@/types/user";
 import { getStore, updateStore } from "@/services/storeService";
-import { formatCnpj, cnpjDigits } from "@/lib/utils";
+import { formatCnpj, cnpjDigits, formatPhone } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { Store } from "@/types/store";
 
@@ -154,7 +154,7 @@ const StoreProfileCard = ({ storeId }: { storeId: string }) => {
               <div className="flex-1 space-y-1">
                 <Label className="text-xs text-muted-foreground">Número</Label>
                 <Input
-                  value={phone.number}
+                  value={formatPhone(phone.number)}
                   onChange={(e) => updatePhone(index, "number", e.target.value.replace(/\D/g, "").slice(0, 9))}
                   placeholder="99999-9999"
                   inputMode="numeric"

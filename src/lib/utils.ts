@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Formata um número de telefone enquanto o usuário digita: 9XXXX-XXXX ou XXXX-XXXX.
+ * Aceita apenas dígitos; retorna o valor formatado com no máximo 9 dígitos.
+ */
+export function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 9);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 8) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
 /** Extrai apenas os dígitos do valor (máx. 14 para CNPJ). */
 export function cnpjDigits(value: string): string {
   return value.replace(/\D/g, "").slice(0, 14);
