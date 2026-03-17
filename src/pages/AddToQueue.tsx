@@ -9,6 +9,7 @@ import { useFirebase } from "@/hooks/firebaseContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
+import GuestSignInDialog from "@/components/GuestSignInDialog";
 import {
   addSingerToQueue,
   findSingerInQueue,
@@ -20,7 +21,7 @@ import type { QueueItem } from "@/types/queue";
 
 const AddToQueue = () => {
   const { db } = useFirebase();
-  const { user } = useCurrentUser();
+  const { user, isAuthenticated, isLoading } = useCurrentUser();
   const [song, setSong] = useState("");
   const [band, setBand] = useState("");
   const [link, setLink] = useState("");
@@ -115,6 +116,10 @@ const AddToQueue = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <GuestSignInDialog
+        open={!isLoading && !isAuthenticated}
+        redirectPath={`/${storeId}/add`}
+      />
       <Navigation />
 
       <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">

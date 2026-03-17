@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Music, Mail, Lock } from "lucide-react";
 
 const Login = () => {
@@ -16,6 +17,12 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { user, isAuthenticated, isLoading } = useCurrentUser();
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user?.storeId) return;
+    navigate(`/${user.storeId}`, { replace: true });
+  }, [isLoading, isAuthenticated, user, navigate]);
 
   const redirectTo = searchParams.get("redirect");
 
@@ -110,15 +117,7 @@ const Login = () => {
             </Link>
           </p>
 
-          <p className="text-center text-sm text-muted-foreground mt-2">
-            ou{" "}
-            <Link
-              to={redirectTo ? `/guest?redirect=${redirectTo}` : "/guest"}
-              className="text-primary hover:underline font-medium"
-            >
-              Continuar sem cadastro
-            </Link>
-          </p>
+
         </div>
       </div>
     </div>

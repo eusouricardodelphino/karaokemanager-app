@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/firebase";
@@ -7,18 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Music, Mail, Lock, Building2, Mic, Store } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Music, Mail, Lock, Building2 } from "lucide-react";
 import type { AppUser } from "@/types/user";
 import type { Store as StoreType } from "@/types/store";
 import { getStoreCodes } from "@/services/storeService";
 import { generateStoreCode } from "@/lib/utils";
 
-type UserType = "singer" | "owner";
-
-
 const SignUp = () => {
-  const [userType, setUserType] = useState<UserType>("singer");
-  const [name, setName] = useState("");
   const [storeName, setStoreName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,40 +22,14 @@ const SignUp = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAuthenticated, isLoading } = useCurrentUser();
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user?.storeId) return;
+    navigate(`/${user.storeId}`, { replace: true });
+  }, [isLoading, isAuthenticated, user, navigate]);
 
   const redirectTo = searchParams.get("redirect");
-
-  const handleSingerSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      const userData: AppUser = {
-        id: user.uid,
-        email: user.email ?? undefined,
-        name: name.trim(),
-        role: "singer",
-        createdAt: new Date().toISOString(),
-      };
-      await setDoc(doc(db, "users", user.uid), userData);
-
-      toast({
-        title: "Cadastro realizado!",
-        description: "Bem-vindo! Agora você pode entrar na fila.",
-      });
-      navigate(redirectTo ?? "/stores", { replace: true });
-    } catch (error: unknown) {
-      toast({
-        title: "Erro ao cadastrar",
-        description: error instanceof Error ? error.message : "Tente novamente",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleOwnerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +68,7 @@ const SignUp = () => {
         title: "Cadastro realizado!",
         description: "Bem-vindo ao painel do Karaoke Manager",
       });
-      navigate(`/${storeRef.id}`);
+      navigate(redirectTo ?? `/${storeRef.id}`, { replace: true });
     } catch (error: unknown) {
       toast({
         title: "Erro ao cadastrar",
@@ -109,16 +79,8 @@ const SignUp = () => {
       setLoading(false);
     }
   };
-    const isSingerFormValid =
-    name.trim() !== "" &&
-    email.trim() !== "" &&
-    password.length >= 6; 
 
-    const isOwnerFormValid =
-      storeName.trim() !== "" &&
-      email.trim() !== "" &&
-      password.length >= 6;
-
+  const isFormValid = storeName.trim() !== "" && email.trim() !== "" && password.length >= 6;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500 flex items-center justify-center p-4">
@@ -132,177 +94,76 @@ const SignUp = () => {
               Criar Conta
             </h1>
             <p className="text-muted-foreground mt-2">
-              Como você quer se cadastrar?
+              Cadastre sua loja no Karaoke Manager
             </p>
           </div>
 
-          {/* Seletor de tipo */}
-          <div className="flex bg-muted rounded-xl p-1 mb-8">
-            <button
-              type="button"
-              onClick={() => setUserType("singer")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                userType === "singer"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+          <form onSubmit={handleOwnerSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="storeName" className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Nome da loja
+              </Label>
+              <Input
+                id="storeName"
+                type="text"
+                placeholder="Nome do estabelecimento"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                required
+                className="bg-background/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="contato@loja.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="bg-background/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                Senha
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="bg-background/50"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              data-testid="submit-button"
+              disabled={loading || !isFormValid}
             >
-              <Mic className="w-4 h-4" />
-              Sou cantor
-            </button>
-            <button
-              type="button"
-              onClick={() => setUserType("owner")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                userType === "owner"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Store className="w-4 h-4" />
-              Sou uma loja
-            </button>
-          </div>
+              {loading ? "Cadastrando..." : "Criar conta"}
+            </Button>
+          </form>
 
-          {userType === "singer" ? (
-            <>
-              <form onSubmit={handleSingerSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="Name" className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    Nome
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Nome do cantor"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="contato@loja.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Senha
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                  data-testid="submit-button"
-                  disabled={loading || !isSingerFormValid}
-                >
-                  {loading ? "Cadastrando..." : "Criar conta"}
-                </Button>
-              </form>
-
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                Já tem uma conta?{" "}
-                <Link to="/login" className="text-primary hover:underline font-medium">
-                  Entrar
-                </Link>
-              </p>
-            </>
-          ) : (
-            <>
-              <form onSubmit={handleOwnerSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="storeName" className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    Nome da loja
-                  </Label>
-                  <Input
-                    id="storeName"
-                    type="text"
-                    placeholder="Nome do estabelecimento"
-                    value={storeName}
-                    onChange={(e) => setStoreName(e.target.value)}
-                    required
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="contato@loja.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Senha
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                  data-testid="submit-button"
-                  disabled={loading || !isOwnerFormValid}
-                >
-                  {loading ? "Cadastrando..." : "Criar conta"}
-                </Button>
-              </form>
-
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                Já tem uma conta?{" "}
-                <Link to="/login" className="text-primary hover:underline font-medium">
-                  Entrar no painel
-                </Link>
-              </p>
-            </>
-          )}
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Já tem uma conta?{" "}
+            <Link to="/login" className="text-primary hover:underline font-medium">
+              Entrar no painel
+            </Link>
+          </p>
         </div>
       </div>
     </div>

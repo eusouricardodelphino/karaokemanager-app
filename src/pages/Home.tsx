@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
 import { useParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
+import GuestSignInDialog from "@/components/GuestSignInDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { isOwner } from "@/types/user";
 import {
@@ -27,11 +28,16 @@ import type { SessionSnapshot } from "@/types/session";
 
 const Home = () => {
   const { db } = useFirebase();
-  const { user } = useCurrentUser();
+  const { user, isAuthenticated, isLoading } = useCurrentUser();
+  const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [currentSinger, setCurrentSinger] = useState<QueueItem | null>(null);
   const [activeSession, setActiveSession] = useState<SessionSnapshot | null>(null);
   const { storeId } = useParams();
+
+  useEffect(() => {
+    if (!isLoading) setGuestDialogOpen(!isAuthenticated);
+  }, [isLoading, isAuthenticated]);
 
   useEffect(() => {
     const queueUnsubscribe = subscribeToQueue(db, storeId, setQueue);
@@ -110,8 +116,13 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <GuestSignInDialog
+        open={guestDialogOpen}
+        redirectPath={`/${storeId}`}
+        onClose={() => setGuestDialogOpen(false)}
+      />
       <Navigation />
-      
+
       <div className="container mx-auto px-4 pt-0 pb-24 md:pt-8 md:pb-8">
         <div className="max-w-6xl mx-auto space-y-4 md:space-y-8">
           {/* Session Control - owner only */}

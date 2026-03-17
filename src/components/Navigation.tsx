@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Home, Plus, Settings, LogIn, LogOut } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import GuestSignInDialog from "@/components/GuestSignInDialog";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -14,6 +16,8 @@ interface NavItem {
 const Navigation = () => {
   const { storeId } = useParams();
   const { isAuthenticated, logout } = useCurrentUser();
+  const navigate = useNavigate();
+  const [guestDialogOpen, setGuestDialogOpen] = useState(false);
 
   const navItems: NavItem[] = [
     { path: `/${storeId}`, icon: Home, label: "Home" },
@@ -22,13 +26,18 @@ const Navigation = () => {
   ];
 
   if (!isAuthenticated) {
-    navItems.push({ path: "/login?redirect=/" + storeId, icon: LogIn, label: "Entrar" });
+    navItems.push({ path: "#", icon: LogIn, label: "Entrar", onClick: () => setGuestDialogOpen(true) });
   } else {
-    navItems.push({ path: "#", icon: LogOut, label: "Sair", onClick: logout });
+    navItems.push({ path: "#", icon: LogOut, label: "Sair", onClick: async () => { await logout(); navigate("/login"); } });
   }
 
   return (
     <>
+      <GuestSignInDialog
+        open={guestDialogOpen}
+        redirectPath={`/${storeId}`}
+        onClose={() => setGuestDialogOpen(false)}
+      />
       {/* Mobile Header - Top */}
       <header className="md:hidden fixed top-0 left-0 right-0 bg-card border-b border-border z-50 shadow-sm">
         <div className="flex items-center justify-center h-14 px-4">
