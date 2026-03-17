@@ -14,6 +14,8 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import GuestSignIn from "./pages/GuestSignIn";
 import StoreList from "./pages/StoreList";
+import Landing from "./pages/Landing";
+import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +38,8 @@ const App = () => (
                 <Route path="/:storeId/settings" element={<Settings />} />
               </Route>
             </Route>
-            <Route path="/" element={<StoreList />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/scan" element={<Scan />} />
             <Route path="/stores" element={<StoreList />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
