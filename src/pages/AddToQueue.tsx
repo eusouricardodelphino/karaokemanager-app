@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,11 @@ import { useStoreExists } from "@/hooks/useStoreExists";
 import NotFound from "@/pages/NotFound";
 import type { QueueItem } from "@/types/queue";
 
+const RATE_LIMIT_MS = 30_000;
+
+const getRateLimitKey = (storeId: string | undefined, userId: string | undefined) =>
+  `karaoke-last-add-${storeId}-${userId}`;
+
 const AddToQueue = () => {
   const { db } = useFirebase();
   const { user, isAuthenticated, isLoading } = useCurrentUser();
@@ -33,12 +38,45 @@ const AddToQueue = () => {
   const canEditName = user?.role !== "singer";
   const effectiveName = canEditName ? name : (user?.name ?? "");
 
+  const isSinger = user?.role === "singer";
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (!isSinger) return;
+    const key = getRateLimitKey(storeId, user?.id);
+    const lastAdd = Number(localStorage.getItem(key) ?? 0);
+    const elapsed = Date.now() - lastAdd;
+    const remaining = Math.ceil((RATE_LIMIT_MS - elapsed) / 1000);
+    if (remaining <= 0) return;
+
+    setCooldown(remaining);
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isSinger, storeId, user?.id]);
+
   let dateToday = new Date()
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })
     .toString();
   dateToday = dateToday.replace(/\//g, ".");
 
   const addToQueue = async () => {
+    if (isSinger && cooldown > 0) {
+      toast({
+        title: "Aguarde um momento",
+        description: `Você poderá adicionar novamente em ${cooldown} segundo${cooldown !== 1 ? "s" : ""}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     let session = null;
     try {
       session = await getActiveSession(db, storeId);
@@ -98,6 +136,12 @@ const AddToQueue = () => {
     }
 
     await addSingerToQueue(db, storeId!, newItem);
+
+    if (isSinger) {
+      const key = getRateLimitKey(storeId, user?.id);
+      localStorage.setItem(key, String(Date.now()));
+      setCooldown(RATE_LIMIT_MS / 1000);
+    }
 
     setSong("");
     setBand("");
@@ -188,9 +232,16 @@ const AddToQueue = () => {
                   Pesquisar música no youtube
                 </Button>
               </a>
-              <Button onClick={addToQueue} className="w-full" size="lg">
+              <Button
+                onClick={addToQueue}
+                className="w-full"
+                size="lg"
+                disabled={isSinger && cooldown > 0}
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                Adicionar à Fila
+                {isSinger && cooldown > 0
+                  ? `Aguarde ${cooldown}s`
+                  : "Adicionar à Fila"}
               </Button>
             </CardContent>
           </Card>

@@ -7,6 +7,10 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: null, isAuthenticated: false, isLoading: false, logout: vi.fn() }),
+}));
+
 vi.mock("firebase/auth", () => ({
   createUserWithEmailAndPassword: vi.fn(),
 }));
@@ -26,31 +30,30 @@ vi.mock("@/firebase", () => ({
   db: {},
 }));
 
+vi.mock("@/services/storeService", () => ({
+  getStoreCodes: vi.fn().mockResolvedValue([]),
+}));
+
 const renderWithRouter = (ui: React.ReactElement) =>
   render(<BrowserRouter>{ui}</BrowserRouter>);
 
 describe("Owner SignUp (tab Sou uma loja)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  const goToOwnerTab = () => {
-    renderWithRouter(<SignUp />);
-    fireEvent.click(screen.getByRole("button", { name: /Sou uma loja/i }));
-  };
-
   it("renders owner form when owner tab is selected", () => {
-    goToOwnerTab();
+    renderWithRouter(<SignUp />);
     expect(screen.getByLabelText(/Nome da loja/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
   });
 
   it("submit button is disabled when owner form is empty", () => {
-    goToOwnerTab();
+    renderWithRouter(<SignUp />);
     expect(screen.getByTestId("submit-button")).toBeDisabled();
   });
 
   it("submit button enables when owner form is filled", async () => {
-    goToOwnerTab();
+    renderWithRouter(<SignUp />);
     fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "bar@ze.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
@@ -70,7 +73,7 @@ describe("Owner SignUp (tab Sou uma loja)", () => {
     vi.mocked(addDoc).mockResolvedValueOnce({ id: "store-id" } as any);
     vi.mocked(updateDoc).mockResolvedValue(undefined);
 
-    goToOwnerTab();
+    renderWithRouter(<SignUp />);
     fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "bar@ze.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });

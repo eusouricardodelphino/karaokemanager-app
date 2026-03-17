@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>39/39</span>
+                <span class='fraction'>47/47</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>39/39</span>
+                <span class='fraction'>47/47</span>
             </div>
         
             
@@ -116,10 +116,40 @@
 <a name='L51'></a><a href='#L51'>51</a>
 <a name='L52'></a><a href='#L52'>52</a>
 <a name='L53'></a><a href='#L53'>53</a>
-<a name='L54'></a><a href='#L54'>54</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -135,20 +165,6 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -158,9 +174,13 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -175,6 +195,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { FirebaseProvider } from "./hooks/firebaseContext";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OwnerLayout } from "./components/OwnerLayout";
@@ -185,6 +207,8 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import GuestSignIn from "./pages/GuestSignIn";
 import StoreList from "./pages/StoreList";
+import Landing from "./pages/Landing";
+import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
 &nbsp;
 const queryClient = new QueryClient();
@@ -192,6 +216,8 @@ const queryClient = new QueryClient();
 const App = () =&gt; (
   &lt;QueryClientProvider client={queryClient}&gt;
     &lt;ThemeProvider&gt;
+      &lt;FirebaseProvider&gt;
+      &lt;AuthProvider&gt;
       &lt;TooltipProvider&gt;
         &lt;Toaster /&gt;
         &lt;Sonner /&gt;
@@ -201,12 +227,14 @@ const App = () =&gt; (
             &lt;Route element={&lt;OwnerLayout /&gt;}&gt;
               &lt;Route path="/:storeId" element={&lt;Home /&gt;} /&gt;
             &lt;/Route&gt;
+            &lt;Route path="/:storeId/add" element={&lt;AddToQueue /&gt;} /&gt;
             &lt;Route element={&lt;ProtectedRoute /&gt;}&gt;
-              &lt;Route path="/:storeId/add" element={&lt;AddToQueue /&gt;} /&gt;
               &lt;Route element={&lt;OwnerLayout /&gt;}&gt;
                 &lt;Route path="/:storeId/settings" element={&lt;Settings /&gt;} /&gt;
               &lt;/Route&gt;
             &lt;/Route&gt;
+            &lt;Route path="/" element={&lt;Landing /&gt;} /&gt;
+            &lt;Route path="/scan" element={&lt;Scan /&gt;} /&gt;
             &lt;Route path="/stores" element={&lt;StoreList /&gt;} /&gt;
             &lt;Route path="/login" element={&lt;Login /&gt;} /&gt;
             &lt;Route path="/signup" element={&lt;SignUp /&gt;} /&gt;
@@ -217,6 +245,8 @@ const App = () =&gt; (
           &lt;/Routes&gt;
         &lt;/BrowserRouter&gt;
       &lt;/TooltipProvider&gt;
+      &lt;/AuthProvider&gt;
+      &lt;/FirebaseProvider&gt;
     &lt;/ThemeProvider&gt;
   &lt;/QueryClientProvider&gt;
 );
@@ -229,7 +259,7 @@ export default App;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-16T18:24:56.295Z
+                at 2026-03-17T19:52:36.330Z
             </div>
         <script src="../prettify.js"></script>
         <script>

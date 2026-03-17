@@ -14,6 +14,13 @@ vi.mock("../pages/NotFound", () => ({ default: () => <div>NotFound Page</div> })
 // ScrollToTop does a scrollTo which jsdom doesn't implement fully
 vi.mock("../components/ScrollToTop", () => ({ ScrollToTop: () => null }));
 
+vi.mock("@/firebase", () => ({ auth: {}, db: {} }));
+vi.mock("firebase/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("firebase/auth")>();
+  return { ...actual, onAuthStateChanged: vi.fn(() => vi.fn()), signOut: vi.fn() };
+});
+vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn(), toasts: [] }), toast: vi.fn() }));
+
 describe("App Component - Routing", () => {
   // Helper: change the URL and render App
   const renderAt = (url: string) => {

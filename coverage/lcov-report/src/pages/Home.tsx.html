@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.68% </span>
+                <span class="strong">96.84% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>175/181</span>
+                <span class='fraction'>184/190</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.77% </span>
+                <span class="strong">78.57% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>21/27</span>
+                <span class='fraction'>22/28</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>5/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.68% </span>
+                <span class="strong">96.84% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>175/181</span>
+                <span class='fraction'>184/190</span>
             </div>
         
             
@@ -349,7 +349,19 @@
 <a name='L284'></a><a href='#L284'>284</a>
 <a name='L285'></a><a href='#L285'>285</a>
 <a name='L286'></a><a href='#L286'>286</a>
-<a name='L287'></a><a href='#L287'>287</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -382,6 +394,11 @@
 <span class="cline-any cline-yes">34x</span>
 <span class="cline-any cline-yes">34x</span>
 <span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-yes">34x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">34x</span>
@@ -461,6 +478,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">34x</span>
 <span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">34x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">34x</span>
@@ -643,6 +665,7 @@ import { toast } from "@/hooks/use-toast";
 import { useFirebase } from "@/hooks/firebaseContext";
 import { useParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
+import GuestSignInDialog from "@/components/GuestSignInDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { isOwner } from "@/types/user";
 import {
@@ -664,11 +687,16 @@ import type { SessionSnapshot } from "@/types/session";
 &nbsp;
 const Home = () =&gt; {
   const { db } = useFirebase();
-  const { user } = useCurrentUser();
+  const { user, isAuthenticated, isLoading } = useCurrentUser();
+  const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [queue, setQueue] = useState&lt;QueueItem[]&gt;([]);
   const [currentSinger, setCurrentSinger] = useState&lt;QueueItem | null&gt;(null);
   const [activeSession, setActiveSession] = useState&lt;SessionSnapshot | null&gt;(null);
   const { storeId } = useParams();
+&nbsp;
+  useEffect(() =&gt; {
+    if (!isLoading) setGuestDialogOpen(!isAuthenticated);
+  }, [isLoading, isAuthenticated]);
 &nbsp;
   useEffect(() =&gt; {
     const queueUnsubscribe = subscribeToQueue(db, storeId, setQueue);
@@ -747,8 +775,13 @@ const Home = () =&gt; {
 &nbsp;
   return (
     &lt;div className="min-h-screen bg-background"&gt;
+      &lt;GuestSignInDialog
+        open={guestDialogOpen}
+        redirectPath={`/${storeId}`}
+        onClose={<span class="fstat-no" title="function not covered" >() =&gt; setGuestDialogOpen(false)}</span>
+      /&gt;
       &lt;Navigation /&gt;
-      
+&nbsp;
       &lt;div className="container mx-auto px-4 pt-0 pb-24 md:pt-8 md:pb-8"&gt;
         &lt;div className="max-w-6xl mx-auto space-y-4 md:space-y-8"&gt;
           {/* Session Control - owner only */}
@@ -928,7 +961,7 @@ export default Home;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-16T18:24:56.295Z
+                at 2026-03-17T19:52:36.330Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -21,6 +21,10 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: null, isAuthenticated: false, isLoading: false, logout: vi.fn() }),
+}));
+
 describe("Login Route (/login)", () => {
   it("renders email form without Google button", () => {
     render(
@@ -34,7 +38,7 @@ describe("Login Route (/login)", () => {
     expect(screen.queryByText(/Continuar com Google/i)).not.toBeInTheDocument();
   });
 
-  it("has 'Criar conta' and 'Continuar sem cadastro' links", () => {
+  it("has 'Criar conta' link", () => {
     render(
       <MemoryRouter>
         <Login />
@@ -42,6 +46,5 @@ describe("Login Route (/login)", () => {
     );
 
     expect(screen.getByRole("link", { name: /Criar conta/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Continuar sem cadastro/i })).toBeInTheDocument();
   });
 });

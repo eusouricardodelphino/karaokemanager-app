@@ -26,6 +26,14 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: null, isAuthenticated: false, isLoading: false, logout: vi.fn() }),
+}));
+
+vi.mock("@/services/storeService", () => ({
+  getStoreCodes: vi.fn().mockResolvedValue([]),
+}));
+
 const renderWithRouter = (ui: React.ReactElement) =>
   render(<BrowserRouter>{ui}</BrowserRouter>);
 
@@ -34,81 +42,27 @@ describe("SignUp Component", () => {
     vi.clearAllMocks();
   });
 
-  it("renders heading and default singer tab", () => {
+  it("renders heading and owner form", () => {
     renderWithRouter(<SignUp />);
     expect(screen.getByRole("heading", { name: /Criar Conta/i })).toBeInTheDocument();
-    expect(screen.getByText(/Como você quer se cadastrar\?/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Nome do cantor/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nome da loja/i)).toBeInTheDocument();
   });
 
-  it("shows singer form with email and password fields by default", () => {
+  it("shows email and password fields", () => {
     renderWithRouter(<SignUp />);
-    expect(screen.getByPlaceholderText(/Nome do cantor/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
     expect(screen.getByText(/Já tem uma conta\?/i)).toBeInTheDocument();
   });
 
-  it("submit button is disabled when singer form is empty", () => {
+  it("submit button is disabled when form is empty", () => {
     renderWithRouter(<SignUp />);
     const submitBtn = screen.getByTestId("submit-button");
     expect(submitBtn).toBeDisabled();
   });
 
-  it("submit button enables when singer form is filled", async () => {
+  it("submit button enables when form is filled", async () => {
     renderWithRouter(<SignUp />);
-    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
-    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
-    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
-
-    await waitFor(() => {
-      expect(screen.getByTestId("submit-button")).not.toBeDisabled();
-    });
-  });
-
-  it("calls createUserWithEmailAndPassword on singer form submit", async () => {
-    const { createUserWithEmailAndPassword } = await import("firebase/auth");
-    const { setDoc } = await import("firebase/firestore");
-    vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
-      user: { uid: "singer-uid", email: "joao@email.com", displayName: null },
-    } as any);
-    vi.mocked(setDoc).mockResolvedValue(undefined);
-
-    renderWithRouter(<SignUp />);
-    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
-    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
-    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
-
-    fireEvent.click(screen.getByTestId("submit-button"));
-
-    await waitFor(() => {
-      expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
-        expect.anything(),
-        "joao@email.com",
-        "senha123"
-      );
-    });
-  });
-
-  it("shows owner form when owner tab is selected", () => {
-    renderWithRouter(<SignUp />);
-    fireEvent.click(screen.getByRole("button", { name: /Sou uma loja/i }));
-    expect(screen.getByLabelText(/Nome da loja/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
-  });
-
-  it("submit button is disabled when owner form is empty", () => {
-    renderWithRouter(<SignUp />);
-    fireEvent.click(screen.getByRole("button", { name: /Sou uma loja/i }));
-    const submitBtn = screen.getByTestId("submit-button");
-    expect(submitBtn).toBeDisabled();
-  });
-
-  it("submit button enables when owner form is filled", async () => {
-    renderWithRouter(<SignUp />);
-    fireEvent.click(screen.getByRole("button", { name: /Sou uma loja/i }));
-
     fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "bar@ze.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
@@ -118,7 +72,7 @@ describe("SignUp Component", () => {
     });
   });
 
-  it("calls createUserWithEmailAndPassword on owner form submit", async () => {
+  it("calls createUserWithEmailAndPassword on form submit", async () => {
     const { createUserWithEmailAndPassword } = await import("firebase/auth");
     const { setDoc, addDoc, updateDoc } = await import("firebase/firestore");
     vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
@@ -129,8 +83,6 @@ describe("SignUp Component", () => {
     vi.mocked(updateDoc).mockResolvedValue(undefined);
 
     renderWithRouter(<SignUp />);
-    fireEvent.click(screen.getByRole("button", { name: /Sou uma loja/i }));
-
     fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "bar@ze.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
@@ -147,7 +99,7 @@ describe("SignUp Component", () => {
   });
 });
 
-describe("SignUp — redirect after singer sign up", () => {
+describe("SignUp — redirect after sign up", () => {
   const renderForNavigation = (initialPath = "/signup") =>
     render(
       <MemoryRouter initialEntries={[initialPath]}>
@@ -163,47 +115,7 @@ describe("SignUp — redirect after singer sign up", () => {
     vi.clearAllMocks();
   });
 
-  it("redireciona singer para /stores após cadastro sem redirectTo", async () => {
-    const { createUserWithEmailAndPassword } = await import("firebase/auth");
-    const { setDoc } = await import("firebase/firestore");
-    vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
-      user: { uid: "singer-uid", email: "joao@email.com" },
-    } as any);
-    vi.mocked(setDoc).mockResolvedValue(undefined);
-
-    renderForNavigation("/signup");
-
-    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João" } });
-    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
-    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
-    fireEvent.click(screen.getByTestId("submit-button"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Store List")).toBeInTheDocument();
-    });
-  });
-
-  it("respeita redirectTo ao invés de /stores quando param está presente", async () => {
-    const { createUserWithEmailAndPassword } = await import("firebase/auth");
-    const { setDoc } = await import("firebase/firestore");
-    vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
-      user: { uid: "singer-uid", email: "joao@email.com" },
-    } as any);
-    vi.mocked(setDoc).mockResolvedValue(undefined);
-
-    renderForNavigation("/signup?redirect=/alguma-loja");
-
-    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João" } });
-    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
-    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
-    fireEvent.click(screen.getByTestId("submit-button"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Owner Store")).toBeInTheDocument();
-    });
-  });
-
-  it("owner ainda é redirecionado para a própria loja após cadastro", async () => {
+  it("redireciona owner para a própria loja após cadastro", async () => {
     const { createUserWithEmailAndPassword } = await import("firebase/auth");
     const { setDoc, addDoc, updateDoc } = await import("firebase/firestore");
     vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
@@ -215,7 +127,28 @@ describe("SignUp — redirect after singer sign up", () => {
 
     renderForNavigation("/signup");
 
-    fireEvent.click(screen.getByRole("button", { name: /Sou uma loja/i }));
+    fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
+    fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "bar@ze.com" } });
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
+    fireEvent.click(screen.getByTestId("submit-button"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Owner Store")).toBeInTheDocument();
+    });
+  });
+
+  it("respeita redirectTo quando param está presente", async () => {
+    const { createUserWithEmailAndPassword } = await import("firebase/auth");
+    const { setDoc, addDoc, updateDoc } = await import("firebase/firestore");
+    vi.mocked(createUserWithEmailAndPassword).mockResolvedValueOnce({
+      user: { uid: "owner-uid", email: "bar@ze.com" },
+    } as any);
+    vi.mocked(setDoc).mockResolvedValue(undefined);
+    vi.mocked(addDoc).mockResolvedValueOnce({ id: "store-xyz" } as any);
+    vi.mocked(updateDoc).mockResolvedValue(undefined);
+
+    renderForNavigation("/signup?redirect=/alguma-loja");
+
     fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "bar@ze.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });

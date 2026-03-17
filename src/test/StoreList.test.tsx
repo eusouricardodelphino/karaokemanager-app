@@ -9,6 +9,10 @@ vi.mock("@/hooks/firebaseContext", () => ({
   useFirebase: vi.fn(),
 }));
 
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: null, isAuthenticated: false, isLoading: false, logout: vi.fn() }),
+}));
+
 vi.mock("@/services/storeService", () => ({
   getStores: vi.fn(),
 }));

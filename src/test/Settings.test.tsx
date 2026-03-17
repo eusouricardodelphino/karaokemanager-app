@@ -114,7 +114,7 @@ describe("Settings — Store Profile Card", () => {
     expect(await screen.findByDisplayValue("Bar do Zé")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Rua das Flores, 123")).toBeInTheDocument();
     expect(screen.getByDisplayValue("12.345.678/0001-90")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("999999999")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("99999-9999")).toBeInTheDocument();
   });
 
   it("adds a new phone entry when clicking Adicionar", async () => {

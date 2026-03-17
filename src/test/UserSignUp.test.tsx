@@ -7,6 +7,10 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: null, isAuthenticated: false, isLoading: false, logout: vi.fn() }),
+}));
+
 vi.mock("firebase/auth", () => ({
   createUserWithEmailAndPassword: vi.fn(),
 }));
@@ -25,6 +29,10 @@ vi.mock("@/firebase", () => ({
   db: {},
 }));
 
+vi.mock("@/services/storeService", () => ({
+  getStoreCodes: vi.fn().mockResolvedValue([]),
+}));
+
 const renderWithRouter = (ui: React.ReactElement) =>
   render(<BrowserRouter>{ui}</BrowserRouter>);
 
@@ -33,7 +41,7 @@ describe("Singer SignUp (tab Sou cantor)", () => {
 
   it("renders singer form by default", () => {
     renderWithRouter(<SignUp />);
-    expect(screen.getByPlaceholderText(/Nome do cantor/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nome da loja/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
   });
@@ -45,7 +53,7 @@ describe("Singer SignUp (tab Sou cantor)", () => {
 
   it("submit button enables when singer form is filled", async () => {
     renderWithRouter(<SignUp />);
-    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
+    fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
 
@@ -63,7 +71,7 @@ describe("Singer SignUp (tab Sou cantor)", () => {
     vi.mocked(setDoc).mockResolvedValue(undefined);
 
     renderWithRouter(<SignUp />);
-    fireEvent.change(screen.getByPlaceholderText(/Nome do cantor/i), { target: { value: "João Silva" } });
+    fireEvent.change(screen.getByLabelText(/Nome da loja/i), { target: { value: "Bar do Zé" } });
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: "joao@email.com" } });
     fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: "senha123" } });
     fireEvent.click(screen.getByTestId("submit-button"));

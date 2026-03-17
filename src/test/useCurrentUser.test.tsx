@@ -4,6 +4,7 @@ import React from "react";
 import * as firebaseAuth from "firebase/auth";
 import * as userServiceModule from "../services/userService";
 import { FirebaseProvider } from "../hooks/firebaseContext";
+import { AuthProvider } from "../contexts/AuthContext";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 
 vi.mock("@/firebase", () => ({ auth: {}, db: {} }));
@@ -32,7 +33,9 @@ vi.mock("../hooks/firebaseContext", async (importOriginal) => {
 });
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <FirebaseProvider>{children}</FirebaseProvider>
+  <FirebaseProvider>
+    <AuthProvider>{children}</AuthProvider>
+  </FirebaseProvider>
 );
 
 describe("useCurrentUser hook", () => {

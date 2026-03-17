@@ -9,6 +9,10 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: null, isAuthenticated: false, isLoading: false, logout: vi.fn() }),
+}));
+
 vi.mock("firebase/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("firebase/auth")>();
   return {
@@ -42,7 +46,6 @@ describe("Login Component", () => {
     expect(screen.getByLabelText(/Senha/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Entrar$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Criar conta/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Continuar sem cadastro/i })).toBeInTheDocument();
   });
 
   it("shows loading state when submitting email login", async () => {
@@ -99,10 +102,10 @@ describe("Login Component", () => {
     });
   });
 
-  it("link 'Continuar sem cadastro' aponta para /guest", () => {
+  it("link 'Criar conta' aponta para /signup", () => {
     renderWithRouter(<Login />);
-    const link = screen.getByRole("link", { name: /Continuar sem cadastro/i });
-    expect(link).toHaveAttribute("href", "/guest");
+    const link = screen.getByRole("link", { name: /Criar conta/i });
+    expect(link).toHaveAttribute("href", "/signup");
   });
 });
 

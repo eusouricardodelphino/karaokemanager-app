@@ -10,7 +10,7 @@ import type { QueueItem } from "../types/queue";
 import type { SessionSnapshot } from "../types/session";
 
 vi.mock("@/components/Navigation", () => ({ default: () => <nav data-testid="nav" /> }));
-vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn() }));
+vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn(), useToast: () => ({ toast: vi.fn() }) }));
 
 vi.mock("@/services/queueService", () => ({
   subscribeToQueue: vi.fn(() => vi.fn()),
