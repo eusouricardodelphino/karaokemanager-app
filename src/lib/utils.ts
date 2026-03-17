@@ -22,6 +22,22 @@ export function cnpjDigits(value: string): string {
 }
 
 /**
+ * Gera um código único de 3 a 6 dígitos para identificar uma loja.
+ * Recebe a lista de códigos já existentes para evitar colisões.
+ * Lança erro se não conseguir gerar um código único após `maxAttempts` tentativas.
+ */
+export function generateStoreCode(existingCodes: string[], maxAttempts = 200): string {
+  const used = new Set(existingCodes);
+  for (let i = 0; i < maxAttempts; i++) {
+    // Intervalo: 100–999999 (cobre 3 a 6 dígitos, distribuição uniforme)
+    const n = Math.floor(Math.random() * 899_900) + 100;
+    const code = String(n);
+    if (!used.has(code)) return code;
+  }
+  throw new Error("Não foi possível gerar um código único para a loja.");
+}
+
+/**
  * Formata uma string como CNPJ enquanto o usuário digita: XX.XXX.XXX/XXXX-XX.
  * Aceita apenas dígitos; retorna o valor formatado com no máximo 14 dígitos.
  */

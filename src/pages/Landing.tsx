@@ -3,10 +3,33 @@ import { Link, useNavigate } from "react-router-dom";
 import { QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useFirebase } from "@/hooks/firebaseContext";
+import { getStoreByCode } from "@/services/storeService";
 
 const Landing = () => {
   const [barCode, setBarCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { db } = useFirebase();
   const navigate = useNavigate();
+
+  const handleAccessQueue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const store = await getStoreByCode(db, barCode.trim());
+      if (!store?.id) {
+        setError("Código não encontrado. Verifique e tente novamente.");
+        return;
+      }
+      navigate(`/${store.id}`);
+    } catch {
+      setError("Erro ao buscar o bar. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500 flex flex-col items-center justify-center p-4">
@@ -50,22 +73,26 @@ const Landing = () => {
           </div>
 
           {/* Code input section */}
-          <div className="flex flex-col gap-3 px-8 pt-6 pb-8">
+          <form onSubmit={handleAccessQueue} className="flex flex-col gap-3 px-8 pt-6 pb-8">
             <Input
               type="text"
               placeholder="Digite o Código do Bar (ex: 421)"
               value={barCode}
-              onChange={(e) => setBarCode(e.target.value)}
-              className="bg-background/50 text-center"
+              onChange={(e) => { setBarCode(e.target.value); setError(""); }}
+              className={`bg-background/50 text-center ${error ? "border-destructive" : ""}`}
             />
+            {error && (
+              <p className="text-destructive text-xs text-center -mt-1">{error}</p>
+            )}
             <Button
+              type="submit"
               variant="outline"
               className="w-full font-bold text-sm tracking-wide h-12 rounded-xl"
-              disabled
+              disabled={loading || barCode.trim().length < 3}
             >
-              ACESSAR FILA
+              {loading ? "Buscando..." : "ACESSAR FILA"}
             </Button>
-          </div>
+          </form>
         </div>
 
         {/* Owner link */}

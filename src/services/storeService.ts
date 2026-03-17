@@ -1,4 +1,4 @@
-import { collection, deleteField, doc, getDoc, getDocs, orderBy, query, updateDoc, Firestore } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where, Firestore } from "firebase/firestore";
 import type { Store } from "@/types/store";
 
 export const getStore = async (db: Firestore, storeId: string): Promise<Store | null> => {
@@ -15,6 +15,28 @@ export const updateStore = async (db: Firestore, storeId: string, data: StoreUpd
     payload[key] = val === undefined ? deleteField() : val;
   }
   await updateDoc(doc(db, "stores", storeId), payload);
+};
+
+/** Busca uma loja ativa pelo código único de 3 a 6 dígitos. Retorna null se não encontrada. */
+export const getStoreByCode = async (db: Firestore, code: string): Promise<Store | null> => {
+  const q = query(
+    collection(db, "stores"),
+    where("code", "==", code),
+    where("active", "==", true),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  const d = snapshot.docs[0];
+  return { id: d.id, ...d.data() } as Store;
+};
+
+/** Retorna todos os códigos de loja cadastrados (ativos ou não) para verificação de unicidade. */
+export const getStoreCodes = async (db: Firestore): Promise<string[]> => {
+  const snapshot = await getDocs(collection(db, "stores"));
+  return snapshot.docs
+    .map((d) => d.data().code as string | undefined)
+    .filter((c): c is string => typeof c === "string" && c.length > 0);
 };
 
 export const getStores = async (db: Firestore): Promise<Store[]> => {

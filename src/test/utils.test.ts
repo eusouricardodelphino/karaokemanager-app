@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { cn, cnpjDigits, formatCnpj } from "../lib/utils";
+import { describe, it, expect, vi } from "vitest";
+import { cn, cnpjDigits, formatCnpj, generateStoreCode } from "../lib/utils";
 
 describe("cn", () => {
   it("merges class names", () => {
@@ -51,5 +51,38 @@ describe("formatCnpj", () => {
 
   it("accepts already-formatted string", () => {
     expect(formatCnpj("12.345.678/0001-99")).toBe("12.345.678/0001-99");
+  });
+});
+
+describe("generateStoreCode", () => {
+  it("returns a string with 3 to 6 digits", () => {
+    const code = generateStoreCode([]);
+    expect(code).toMatch(/^\d{3,6}$/);
+  });
+
+  it("does not return a code already in use", () => {
+    // Fill all 3-digit codes to force a 4+ digit result
+    const threedigit = Array.from({ length: 900 }, (_, i) => String(i + 100));
+    const code = generateStoreCode(threedigit);
+    expect(threedigit).not.toContain(code);
+  });
+
+  it("returns distinct codes on successive calls with accumulated list", () => {
+    const used: string[] = [];
+    for (let i = 0; i < 20; i++) {
+      const code = generateStoreCode(used);
+      expect(used).not.toContain(code);
+      used.push(code);
+    }
+  });
+
+  it("throws when no unique code can be found within maxAttempts", () => {
+    // Mock Math.random to always return the same value → always the same code
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0);
+    const alwaysSame = generateStoreCode([]); // first call works
+    expect(() => generateStoreCode([alwaysSame], 5)).toThrow(
+      "Não foi possível gerar um código único para a loja."
+    );
+    spy.mockRestore();
   });
 });

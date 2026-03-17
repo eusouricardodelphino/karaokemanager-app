@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Moon, Sun, Plus, Trash2 } from "lucide-react";
+import { Moon, Sun, Plus, Trash2, Download } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import Navigation from "@/components/Navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -200,6 +201,58 @@ const StoreProfileCard = ({ storeId }: { storeId: string }) => {
   );
 };
 
+const STORE_BASE_URL = "https://app.karaokemanager.com.br";
+
+const StoreQRCodeCard = ({ storeId }: { storeId: string }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const storeUrl = `${STORE_BASE_URL}/${storeId}`;
+
+  const handleDownload = () => {
+    const qrCanvas = canvasRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!qrCanvas) return;
+
+    const size = qrCanvas.width;
+    const output = document.createElement("canvas");
+    output.width = size;
+    output.height = size;
+    const ctx = output.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(qrCanvas, 0, 0);
+
+    const link = document.createElement("a");
+    link.download = `qrcode-loja-${storeId}.jpg`;
+    link.href = output.toDataURL("image/jpeg", 0.95);
+    link.click();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>QR Code da Loja</CardTitle>
+        <CardDescription>
+          Imprima ou exiba este QR Code para os clientes escanearem e entrarem na fila.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center gap-4">
+        <div ref={canvasRef} className="p-4 bg-white rounded-xl shadow-sm border border-border">
+          <QRCodeCanvas
+            value={storeUrl}
+            size={200}
+            marginSize={2}
+            level="M"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground break-all text-center">{storeUrl}</p>
+        <Button onClick={handleDownload} variant="outline" className="gap-2 w-full">
+          <Download className="w-4 h-4" />
+          Baixar como JPEG
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
 const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useCurrentUser();
@@ -220,6 +273,11 @@ const Settings = () => {
           {/* Store Profile — owners only */}
           {isOwner(user) && user?.storeId && (
             <StoreProfileCard storeId={user.storeId} />
+          )}
+
+          {/* QR Code — owners and staff */}
+          {(isOwner(user) || user?.role === "staff") && user?.storeId && (
+            <StoreQRCodeCard storeId={user.storeId} />
           )}
 
           {/* Theme Selector */}

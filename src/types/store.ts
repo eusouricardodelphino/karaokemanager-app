@@ -14,6 +14,8 @@ export interface Store {
   /** Gerado pelo Firestore ao criar o documento */
   id?: string;
   name: string;
+  /** Código único de 3 a 6 dígitos para identificar a loja (ex: 421, 3847) */
+  code: string;
   logoUrl?: string;
   address?: string;
   phones?: { ddd: string; number: string; whatsapp: boolean }[];

@@ -27,12 +27,12 @@ const Scan = () => {
   const handleDetected = (rawValue: string) => {
     stopCamera();
     try {
-      new URL(rawValue);
-      // Valid full URL — follow it entirely
-      window.location.href = rawValue;
+      // Valida que é uma URL antes de seguir
+      const url = new URL(rawValue.trim());
+      window.location.href = url.href;
     } catch {
-      // Not a URL — treat as storeId directly
-      navigate(`/${rawValue}`);
+      setState("error");
+      setErrorMsg("QR Code inválido. Verifique se o QR Code pertence a um bar cadastrado.");
     }
   };
 

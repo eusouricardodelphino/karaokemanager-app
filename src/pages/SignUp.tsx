@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Music, Mail, Lock, Building2, Mic, Store } from "lucide-react";
 import type { AppUser } from "@/types/user";
 import type { Store as StoreType } from "@/types/store";
+import { getStoreCodes } from "@/services/storeService";
+import { generateStoreCode } from "@/lib/utils";
 
 type UserType = "singer" | "owner";
 
@@ -76,8 +78,12 @@ const SignUp = () => {
       };
       await setDoc(doc(db, "users", user.uid), userData);
 
+      const existingCodes = await getStoreCodes(db);
+      const code = generateStoreCode(existingCodes);
+
       const storeData: Omit<StoreType, "id"> = {
         name: storeName.trim(),
+        code,
         ownerId: user.uid,
         active: true,
         createdAt: new Date().toISOString(),
