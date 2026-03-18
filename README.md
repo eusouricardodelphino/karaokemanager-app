@@ -1,77 +1,109 @@
-# 🎤 Karaoke Manager - App Rooms
+# KaraokeManager — App Rooms
 
-Sistema de gerenciamento de filas de Karaokê com suporte a multi-tenancy, permitindo que diferentes estabelecimentos (restaurantes/bares) gerenciem suas próprias filas de forma independente.
+Sistema completo para gerenciamento de filas de karaokê. Cada estabelecimento possui sua própria fila isolada, acessível via QR Code ou código de acesso curto.
 
-## 🚀 Funcionalidades
+Produção: **https://app.karaokemanager.com.br**
 
--   **Multi-tenancy**: Cada estabelecimento possui sua própria URL e fila exclusiva (`/:restaurantId`).
--   **Gerenciamento de Fila**: Adição de cantores, visualização em tempo real e controle de quem está no palco.
--   **Autenticação Multi-nível**:
-    -   **Dono (Owner)**: Gerencia as configurações do estabelecimento e a fila.
-    -   **Usuário (Singer)**: Entra na fila e acompanha o status.
--   **Sincronização em Tempo Real**: Alimentado por Firebase Firestore.
--   **Interface Responsiva**: Construída com Tailwind CSS e Radix UI (shadcn/ui).
+---
 
-## 🛠️ Tech Stack
+## Funcionalidades
 
--   **Frontend**: React + Vite + TypeScript
--   **State Management**: TanStack Query (React Query)
--   **Styling**: Tailwind CSS + shadcn/ui
--   **Backend/Database**: Firebase (Auth, Firestore, Analytics)
--   **Routing**: React Router DOM (v6)
--   **Testing**: Vitest + Testing Library
+### Para cantores (singers)
+- Entrada na fila informando nome, música, banda e link do YouTube
+- Verificação server-side via Cloud Function (transação Firestore) que impede duplicata de cantor na fila
+- Rate limiting de 30 segundos entre adições consecutivas
+- Autenticação Google ou acesso anônimo (guest)
 
-## 🏗️ Arquitetura e Dados
+### Para o estabelecimento (owner / staff)
+- Gerenciamento de sessões diárias (abrir/fechar fila)
+- Controle do palco: chamar próximo cantor, marcar como cantado, remover da fila
+- Visualização da fila em tempo real via Firestore listeners
+- QR Code da loja para download em JPEG
+- Código de acesso curto (`store.code`) com cópia e download como JPEG
+- Edição do perfil da loja (nome, endereço, CNPJ, telefones)
 
-O projeto utiliza uma estrutura de dados no Firestore baseada no `restaurantId` (presente na URL) para filtrar as coleções:
+### Configurações
+- Página de configurações com **tabs** no desktop e **accordion** no mobile
+- Suporte a temas claro e escuro
 
--   `users`: Perfis de usuários e donos.
--   `queue`: Itens da fila de espera filtrados por `restaurantId`.
--   `onStage`: Controle de quem está cantando no momento.
+---
 
-## ⚙️ Configuração Local
+## Roles
+
+| Role | Descrição |
+|------|-----------|
+| `owner` | Dono da loja — acesso total, incluindo perfil e relatórios |
+| `staff` | Operador — gerencia a fila e o palco, sem acesso a dados financeiros |
+| `singer` | Cantor — entra na fila e acompanha em tempo real |
+
+---
+
+## Tech Stack
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 18 + Vite + TypeScript |
+| UI | Tailwind CSS + shadcn/ui (Radix UI) |
+| Roteamento | React Router DOM v6 |
+| Backend | Firebase Firestore + Auth + Analytics |
+| Testes | Vitest + Testing Library |
+| Deploy | Firebase Hosting |
+
+---
+
+## Estrutura Firestore
+
+```
+users/{userId}
+stores/{storeId}
+  └── rooms/{roomId}            # roomId fixo: "main"
+        ├── queue/{queueId}     # entradas da fila
+        ├── stage/current       # cantor no palco (documento único)
+        └── sessions/{date}     # sessão do dia (ID = "YYYY-MM-DD")
+  └── reports/{reportId}        # gerados apenas por Cloud Functions
+```
+
+---
+
+## Configuração Local
 
 ### Pré-requisitos
--   Node.js (v18+)
--   Yarn ou npm
+- Node.js 20+
+- npm
 
 ### Instalação
 
-1.  Clone o repositório:
-    ```bash
-    git clone <repository-url>
-    cd karaoke-manager/app-rooms
-    ```
+```bash
+git clone <repository-url>
+cd karaoke-manager/app-rooms
+npm install
+```
 
-2.  Instale as dependências:
-    ```bash
-    yarn install
-    # ou
-    npm install
-    ```
+### Variáveis de ambiente
 
-3.  Configure as variáveis de ambiente:
-    Crie um arquivo `.env` na raiz do projeto baseado no `.env-example`:
-    ```env
-    VITE_FIREBASE_API_KEY=your_api_key
-    VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-    VITE_FIREBASE_PROJECT_ID=your_project_id
-    VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-    VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-    VITE_FIREBASE_APP_ID=your_app_id
-    VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-    ```
+Crie `.env` na raiz baseado no `.env-example`:
 
-### Execução
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
+```
 
--   **Desenvolvimento**: `yarn dev` ou `npm run dev`
--   **Build**: `yarn build` ou `npm run build`
--   **Testes**: `yarn test` ou `npm run test`
--   **Lint**: `yarn lint` ou `npm run lint`
+### Scripts
 
-## 📖 Como Usar
+```bash
+npm run dev          # servidor de desenvolvimento (porta 8080)
+npm run build        # build de produção
+npm run test         # testes com Vitest
+npm run lint         # ESLint
+npm run deploy       # build + firebase deploy (hosting + functions)
+```
 
-Para acessar a fila de um restaurante específico, utilize o padrão de URL:
-`http://localhost:5173/nome-do-restaurante`
+## Segurança
 
-Os donos podem gerenciar as configurações em `/:restaurantId/settings` após o login.
+- **Firestore Rules**: controle de acesso por role em todas as coleções; `userId` em entradas da fila deve corresponder ao `request.auth.uid`
+- **Trial e assinatura**: lojas só operam com trial ativo ou assinatura paga (`storeIsOperational`)
