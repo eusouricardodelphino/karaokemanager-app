@@ -1,9 +1,11 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Moon, Sun, Plus, Trash2, Download } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Moon, Sun, Plus, Trash2, Download, Copy, Check } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import Navigation from "@/components/Navigation";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -253,9 +255,184 @@ const StoreQRCodeCard = ({ storeId }: { storeId: string }) => {
   );
 };
 
-const Settings = () => {
+const ACCESS_INSTRUCTION = "Para acessar nossa loja acesse:";
+const ACCESS_URL = "https://app.karaokemanager.com.br";
+const ACCESS_SUFFIX = "e digite o código acima";
+
+const StoreAccessCodeCard = ({ storeId }: { storeId: string }) => {
+  const { db } = useFirebase();
+  const [code, setCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    getStore(db, storeId).then((store) => {
+      if (store?.code) setCode(store.code);
+    });
+  }, [db, storeId]);
+
+  const handleCopy = () => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    if (!code) return;
+
+    const W = 600;
+    const H = 320;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+
+    // fundo branco
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+
+    // instrução — linha 1
+    ctx.fillStyle = "#374151";
+    ctx.font = "22px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(ACCESS_INSTRUCTION, W / 2, 70);
+
+    // URL — linha 2
+    ctx.fillStyle = "#6366f1";
+    ctx.font = "bold 22px sans-serif";
+    ctx.fillText(ACCESS_URL, W / 2, 108);
+
+    // sufixo — linha 3
+    ctx.fillStyle = "#374151";
+    ctx.font = "22px sans-serif";
+    ctx.fillText(ACCESS_SUFFIX, W / 2, 146);
+
+    // código
+    ctx.fillStyle = "#111827";
+    ctx.font = "bold 80px monospace";
+    ctx.letterSpacing = "8px";
+    ctx.fillText(code, W / 2, 252);
+
+    const link = document.createElement("a");
+    link.download = `codigo-acesso-${code}.jpg`;
+    link.href = canvas.toDataURL("image/jpeg", 0.95);
+    link.click();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Código de Acesso</CardTitle>
+        <CardDescription>
+          Compartilhe este código para que os clientes acessem a fila digitando manualmente.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center gap-4">
+        {code ? (
+          <>
+            <div className="flex flex-col items-center gap-2 w-full rounded-xl border border-border bg-muted/30 py-6 px-4">
+              <p className="text-sm text-muted-foreground text-center">
+                {ACCESS_INSTRUCTION}{" "}
+                <span className="text-primary font-medium">{ACCESS_URL}</span>{" "}
+                {ACCESS_SUFFIX}
+              </p>
+              <p className="text-4xl font-mono font-bold tracking-widest select-all mt-1">{code}</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Button onClick={handleCopy} variant="outline" className="gap-2 flex-1">
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? "Copiado!" : "Copiar código"}
+              </Button>
+              <Button onClick={handleDownload} variant="outline" className="gap-2 flex-1">
+                <Download className="w-4 h-4" />
+                Baixar como JPEG
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const AppearanceCard = () => {
   const { theme, setTheme } = useTheme();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Aparência</CardTitle>
+        <CardDescription>Escolha o tema que melhor se adapta ao seu estilo</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Tema</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setTheme("light")}
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                theme === "light" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              }`}
+            >
+              <Sun className="h-8 w-8" />
+              <span className="font-medium">Claro</span>
+            </button>
+            <button
+              onClick={() => setTheme("dark")}
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                theme === "dark" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              }`}
+            >
+              <Moon className="h-8 w-8" />
+              <span className="font-medium">Escuro</span>
+            </button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const AboutCard = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Sobre</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-2 text-sm text-muted-foreground">
+      <p>
+        <strong className="text-foreground">KaraokeManager</strong> — Sistema de gerenciamento de fila de karaoke
+      </p>
+      <p>Versão 1.0.0</p>
+    </CardContent>
+  </Card>
+);
+
+type Section = { id: string; label: string; content: ReactNode };
+
+const gridCols: Record<number, string> = {
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
+  5: "grid-cols-5",
+};
+
+const Settings = () => {
   const { user } = useCurrentUser();
+
+  const sections: Section[] = [
+    ...(isOwner(user) && user?.storeId
+      ? [{ id: "perfil", label: "Perfil", content: <StoreProfileCard storeId={user.storeId} /> }]
+      : []),
+    ...((isOwner(user) || user?.role === "staff") && user?.storeId
+      ? [
+          { id: "qrcode", label: "QR Code", content: <StoreQRCodeCard storeId={user.storeId} /> },
+          { id: "codigo", label: "Código", content: <StoreAccessCodeCard storeId={user.storeId} /> },
+        ]
+      : []),
+    { id: "aparencia", label: "Aparência", content: <AppearanceCard /> },
+    { id: "sobre", label: "Sobre", content: <AboutCard /> },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -270,67 +447,47 @@ const Settings = () => {
             </p>
           </div>
 
-          {/* Store Profile — owners only */}
-          {isOwner(user) && user?.storeId && (
-            <StoreProfileCard storeId={user.storeId} />
-          )}
-
-          {/* QR Code — owners and staff */}
-          {(isOwner(user) || user?.role === "staff") && user?.storeId && (
-            <StoreQRCodeCard storeId={user.storeId} />
-          )}
-
-          {/* Theme Selector */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Aparência</CardTitle>
-              <CardDescription>
-                Escolha o tema que melhor se adapta ao seu estilo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tema</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => setTheme("light")}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                      theme === "light"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    }`}
+          {/* Desktop: Tabs */}
+          <div className="hidden md:block">
+            <Tabs defaultValue={sections[0].id}>
+              <TabsList className={`w-full grid ${gridCols[sections.length] ?? "grid-cols-3"} bg-card border border-border`}>
+                {sections.map((s) => (
+                  <TabsTrigger
+                    key={s.id}
+                    value={s.id}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
                   >
-                    <Sun className="h-8 w-8" />
-                    <span className="font-medium">Claro</span>
-                  </button>
-                  <button
-                    onClick={() => setTheme("dark")}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                      theme === "dark"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <Moon className="h-8 w-8" />
-                    <span className="font-medium">Escuro</span>
-                  </button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    {s.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {sections.map((s) => (
+                <TabsContent key={s.id} value={s.id} className="mt-4">
+                  {s.content}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
 
-          {/* About */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Sobre</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>
-                <strong className="text-foreground">KaraokeManager</strong> — Sistema de gerenciamento de fila de karaoke
-              </p>
-              <p>Versão 1.0.0</p>
-            </CardContent>
-          </Card>
+          {/* Mobile: Accordion */}
+          <div className="md:hidden">
+            <Accordion type="single" collapsible className="space-y-2">
+              {sections.map((s) => (
+                <AccordionItem
+                  key={s.id}
+                  value={s.id}
+                  className="border rounded-lg px-4"
+                >
+                  <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                    {s.label}
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1 pb-4">
+                    {s.content}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         </div>
       </div>
     </div>
