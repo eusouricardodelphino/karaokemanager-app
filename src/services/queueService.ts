@@ -135,14 +135,14 @@ export const markSingerAsAlreadySangById = async (
 export const findSingerInQueue = async (
   db: Firestore,
   storeId: string | undefined,
-  nameSearch: string
+  userId: string
 ): Promise<QuerySnapshot<DocumentData> | null> => {
   if (!storeId) return null;
 
   return getDocs(
     query(
       queueCol(db, storeId),
-      where("nameSearch", "==", nameSearch.trim().toLowerCase()),
+      where("userId", "==", userId),
       where("alreadySang", "==", false)
     )
   );

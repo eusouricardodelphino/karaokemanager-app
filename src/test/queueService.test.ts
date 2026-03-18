@@ -230,7 +230,7 @@ describe("queueService", () => {
   // ─── findSingerInQueue ──────────────────────────────────────────────
 
   it("findSingerInQueue: returns null without calling getDocs when storeId is undefined", async () => {
-    const result = await findSingerInQueue(mockDb, undefined, "test");
+    const result = await findSingerInQueue(mockDb, undefined, "uid-123");
     expect(result).toBeNull();
     expect(firestoreFunctions.getDocs).not.toHaveBeenCalled();
   });
@@ -239,20 +239,20 @@ describe("queueService", () => {
     const mockSnapshot = { empty: false, docs: [] };
     vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce(mockSnapshot as any);
 
-    const result = await findSingerInQueue(mockDb, "store-1", "  Test Singer  ");
+    const result = await findSingerInQueue(mockDb, "store-1", "uid-123");
     expect(firestoreFunctions.getDocs).toHaveBeenCalled();
     expect(result).toBe(mockSnapshot);
   });
 
-  it("findSingerInQueue: trims and lowercases the name search", async () => {
+  it("findSingerInQueue: queries by userId field", async () => {
     const mockSnapshot = { empty: false, docs: [] };
     vi.mocked(firestoreFunctions.getDocs).mockResolvedValueOnce(mockSnapshot as any);
 
-    await findSingerInQueue(mockDb, "store-1", "  JOHN DOE  ");
+    await findSingerInQueue(mockDb, "store-1", "uid-abc");
     expect(firestoreFunctions.where).toHaveBeenCalledWith(
-      "nameSearch",
+      "userId",
       "==",
-      "john doe"
+      "uid-abc"
     );
   });
 

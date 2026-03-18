@@ -196,10 +196,13 @@ service cloud.firestore {
           // Fila é pública — qualquer um pode visualizar
           allow read: if true;
 
-          // Qualquer usuário autenticado pode entrar na fila
+          // Qualquer usuário autenticado pode entrar na fila.
+          // Se userId estiver presente, deve bater com o uid do usuário autenticado.
           allow create: if isAuth()
             && storeIsOperational(storeId)
-            && request.resource.data.keys().hasAll(['name', 'song', 'alreadySang', 'addedAt']);
+            && request.resource.data.keys().hasAll(['name', 'song', 'alreadySang', 'addedAt'])
+            && (!('userId' in request.resource.data)
+                || request.resource.data.userId == request.auth.uid);
 
           // Atualização (ex: marcar alreadySang): owner/staff
           allow update: if isAuth()

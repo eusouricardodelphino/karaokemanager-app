@@ -118,21 +118,19 @@ const AddToQueue = () => {
       link: link.trim() || null,
       visitDate: dateToday,
       addedAt: new Date(),
+      userId: user?.id,
     };
 
-    const alreadyInQueue = await findSingerInQueue(
-      db,
-      storeId,
-      newItem.nameSearch
-    );
-
-    if (alreadyInQueue && !alreadyInQueue.empty) {
-      toast({
-        title: "Você já está na fila",
-        description: "Espere sua vez! Após, é possível entrar novamente na fila.",
-        variant: "destructive",
-      });
-      return;
+    if (!canEditName && user?.id) {
+      const alreadyInQueue = await findSingerInQueue(db, storeId, user.id);
+      if (alreadyInQueue && !alreadyInQueue.empty) {
+        toast({
+          title: "Você já está na fila",
+          description: "Espere sua vez! Após, é possível entrar novamente na fila.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     await addSingerToQueue(db, storeId!, newItem);
