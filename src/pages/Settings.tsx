@@ -270,11 +270,16 @@ const StoreAccessCodeCard = ({ storeId }: { storeId: string }) => {
     });
   }, [db, storeId]);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!code) return;
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const text = `${ACCESS_INSTRUCTION} ${ACCESS_URL} ${ACCESS_SUFFIX}\n${code}`;
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "Não foi possível copiar", description: "Copie o código manualmente.", variant: "destructive" });
+    }
   };
 
   const handleDownload = () => {
